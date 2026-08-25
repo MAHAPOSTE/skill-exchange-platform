@@ -1,4 +1,5 @@
 import User from "../models/userModel.js";
+import Skill from "../models/skillModel.js";
 
 export const getProfile = async (req, res) => {
   try {
@@ -55,6 +56,52 @@ export const updateProfile = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to update profile",
+      error: error.message,
+    });
+  }
+};
+
+export const getUsersBySkill = async (req, res) => {
+  try {
+    const { skill } = req.query;
+
+    const page = Number(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+
+    if (skill) {
+      filter.name = {
+        $regex: skill,
+        $options: "i",
+      };
+    }
+
+    const totalSkills = await Skill.countDocuments(filter);
+
+    const skills = await Skill.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .populate("user", "name email");
+
+    const users = skills.map((skill) => ({
+      skillId: skill._id,
+      skill: skill.name,
+      type: skill.type,
+      user: skill.user,
+    }));
+
+    res.status(200).json({
+      count: users.length,
+      totalSkills: totalSkills,
+      currentPage: page,
+      totalPages: Math.ceil(totalSkills / limit),
+      users: users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch users",
       error: error.message,
     });
   }
