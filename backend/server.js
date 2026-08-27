@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import skillRoutes from "./routes/skillRoutes.js";
+import mentorRequestRoutes from "./routes/mentorRequestRoutes.js";
 
 import dotenv from "dotenv";
 
@@ -24,6 +25,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/skills", skillRoutes);
+app.use("/api/mentor-requests", mentorRequestRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
