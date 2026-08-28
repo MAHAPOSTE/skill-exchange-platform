@@ -1,6 +1,7 @@
 import User from "../models/userModel.js";
 import Skill from "../models/skillModel.js";
 
+// Get logged-in user's own profile
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -23,6 +24,7 @@ export const getProfile = async (req, res) => {
   }
 };
 
+// Update logged-in user's profile
 export const updateProfile = async (req, res) => {
   try {
     const { name, email } = req.body;
@@ -61,6 +63,7 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+// Search users by skill with pagination
 export const getUsersBySkill = async (req, res) => {
   try {
     const { skill } = req.query;
@@ -102,6 +105,36 @@ export const getUsersBySkill = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch users",
+      error: error.message,
+    });
+  }
+};
+
+// View another user's profile
+export const getUserProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const skills = await Skill.find({
+      user: id,
+    }).select("name type");
+
+    res.status(200).json({
+      message: "User profile fetched successfully",
+      user: user,
+      skills: skills,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch user profile",
       error: error.message,
     });
   }
