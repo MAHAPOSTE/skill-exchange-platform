@@ -6,12 +6,34 @@ export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    // Check required fields
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "All fields are required",
       });
     }
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        message: "Please enter a valid email address",
+      });
+    }
+
+    // Password validation
+    const passwordRegex =
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters and contain one uppercase letter, one lowercase letter, one number, and one special character",
+      });
+    }
+
+    // Check existing user
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -20,8 +42,10 @@ export const register = async (req, res) => {
       });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user
     const user = await User.create({
       name: name,
       email: email,
@@ -49,12 +73,14 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Check required fields
     if (!email || !password) {
       return res.status(400).json({
         message: "Email and password are required",
       });
     }
 
+    // Find user
     const user = await User.findOne({ email: email });
 
     if (!user) {
@@ -63,6 +89,7 @@ export const login = async (req, res) => {
       });
     }
 
+    // Compare password
     const isPasswordCorrect = await bcrypt.compare(
       password,
       user.password
@@ -74,6 +101,7 @@ export const login = async (req, res) => {
       });
     }
 
+    // Create JWT token
     const token = jwt.sign(
       {
         id: user._id,
