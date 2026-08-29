@@ -8,6 +8,7 @@ import {
   getCommunities,
   joinCommunity,
   getCommunityMembers,
+  removeMember,
 } from "../controllers/communityController.js";
 
 const router = express.Router();
@@ -36,6 +37,14 @@ router.get(
   authMiddleware,
   roleMiddleware("mentor"),
   getCommunityMembers
+);
+
+// remove member from community (Mentor only)
+router.delete(
+  "/:id/members/:userId",
+  authMiddleware,
+  roleMiddleware("mentor"),
+  removeMember
 );
 
 export default router;

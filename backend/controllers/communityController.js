@@ -114,3 +114,52 @@ export const getCommunityMembers = async (req, res) => {
     });
   }
 };
+
+// Remove member - Mentor only
+export const removeMember = async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+
+    const community = await Community.findById(id);
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    // Check if logged-in mentor owns the community
+    if (community.mentor.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: "Only the community mentor can remove members",
+      });
+    }
+
+    // Check if user is a member
+    const isMember = community.members.some(
+      (member) => member.toString() === userId
+    );
+
+    if (!isMember) {
+      return res.status(404).json({
+        message: "User is not a member of this community",
+      });
+    }
+
+    // Remove member
+    community.members = community.members.filter(
+      (member) => member.toString() !== userId
+    );
+
+    await community.save();
+
+    res.status(200).json({
+      message: "Member removed successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to remove member",
+      error: error.message,
+    });
+  }
+};
