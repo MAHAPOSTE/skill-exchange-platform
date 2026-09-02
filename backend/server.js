@@ -7,6 +7,7 @@ import userRoutes from "./routes/userRoutes.js";
 import skillRoutes from "./routes/skillRoutes.js";
 import mentorRequestRoutes from "./routes/mentorRequestRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
+import skillExchangeRequestRoutes from "./routes/skillExchangeRequestRoutes.js";
 
 import dotenv from "dotenv";
 
@@ -28,6 +29,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/skills", skillRoutes);
 app.use("/api/mentor-requests", mentorRequestRoutes);
 app.use("/api/communities", communityRoutes);
+app.use("/api/skill-exchange-requests", skillExchangeRequestRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
