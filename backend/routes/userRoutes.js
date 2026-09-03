@@ -1,8 +1,8 @@
 import express from "express";
 
 import {
-  getProfile,
-  updateProfile,
+  getMyProfile,
+  updateMyProfile,
   getUsersBySkill,
   getUserProfile,
 } from "../controllers/userController.js";
@@ -12,10 +12,10 @@ import authMiddleware from "../middlewares/authMiddleware.js";
 const router = express.Router();
 
 // Get logged-in user's own profile
-router.get("/profile", authMiddleware, getProfile);
+router.get("/profile", authMiddleware, getMyProfile);
 
 // Update logged-in user's profile
-router.put("/profile", authMiddleware, updateProfile);
+router.put("/profile", authMiddleware, updateMyProfile);
 
 // Search users by skill with pagination
 router.get("/", getUsersBySkill);

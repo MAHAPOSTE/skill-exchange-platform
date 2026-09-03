@@ -1,8 +1,8 @@
 import User from "../models/userModel.js";
 import Skill from "../models/skillModel.js";
 
-// Get logged-in user's own profile
-export const getProfile = async (req, res) => {
+// Get My Profile
+export const getMyProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
 
@@ -12,22 +12,34 @@ export const getProfile = async (req, res) => {
       });
     }
 
+    const skills = await Skill.find({
+      user: req.user.id,
+    }).select("name type");
+
     res.status(200).json({
       message: "Profile fetched successfully",
-      user: user,
+      profile: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bio: user.bio,
+        profileImage: user.profileImage,
+        skills,
+      },
     });
   } catch (error) {
     res.status(500).json({
-      message: "Failed to get profile",
+      message: "Failed to fetch profile",
       error: error.message,
     });
   }
 };
 
-// Update logged-in user's profile
-export const updateProfile = async (req, res) => {
+// Update My Profile
+export const updateMyProfile = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, bio, profileImage } = req.body;
 
     const user = await User.findById(req.user.id);
 
@@ -37,22 +49,34 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    if (name) {
+    if (name !== undefined) {
       user.name = name;
     }
 
-    if (email) {
-      user.email = email;
+    if (bio !== undefined) {
+      user.bio = bio;
+    }
+
+    if (profileImage !== undefined) {
+      user.profileImage = profileImage;
     }
 
     await user.save();
 
+    const skills = await Skill.find({
+      user: req.user.id,
+    }).select("name type");
+
     res.status(200).json({
       message: "Profile updated successfully",
-      user: {
+      profile: {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
+        bio: user.bio,
+        profileImage: user.profileImage,
+        skills,
       },
     });
   } catch (error) {
@@ -129,7 +153,14 @@ export const getUserProfile = async (req, res) => {
 
     res.status(200).json({
       message: "User profile fetched successfully",
-      user: user,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bio: user.bio,
+        profileImage: user.profileImage,
+      },
       skills: skills,
     });
   } catch (error) {

@@ -8,7 +8,7 @@ import {
   rejectExchangeRequest,
 } from "../controllers/skillExchangeRequestController.js";
 
-import authMiddleware from "../middleware/authMiddleware.js";
+import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
