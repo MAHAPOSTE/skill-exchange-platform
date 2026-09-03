@@ -15,9 +15,9 @@ const skillExchangeRequestSchema = new mongoose.Schema(
     },
 
     offeredSkill: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Skill",
-      required: true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Skill",
+    default: null,
     },
 
     requestedSkill: {

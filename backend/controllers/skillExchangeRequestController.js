@@ -8,10 +8,10 @@ export const sendExchangeRequest = async (req, res) => {
 
     const { receiver, offeredSkill, requestedSkill, message } = req.body;
 
-    if (!receiver || !offeredSkill || !requestedSkill) {
+    // Receiver and requested skill are required
+    if (!receiver || !requestedSkill) {
       return res.status(400).json({
-        message:
-          "Receiver, offered skill and requested skill are required",
+        message: "Receiver and requested skill are required",
       });
     }
 
@@ -22,16 +22,18 @@ export const sendExchangeRequest = async (req, res) => {
       });
     }
 
-    // Check offered skill
-    const senderSkill = await Skill.findOne({
-      _id: offeredSkill,
-      user: senderId,
-    });
-
-    if (!senderSkill) {
-      return res.status(403).json({
-        message: "You do not own the offered skill",
+    // Check offered skill only if the sender provides one
+    if (offeredSkill) {
+      const senderSkill = await Skill.findOne({
+        _id: offeredSkill,
+        user: senderId,
       });
+
+      if (!senderSkill) {
+        return res.status(403).json({
+          message: "You do not own the offered skill",
+        });
+      }
     }
 
     // Check requested skill belongs to receiver
@@ -50,7 +52,7 @@ export const sendExchangeRequest = async (req, res) => {
     const existingRequest = await SkillExchangeRequest.findOne({
       sender: senderId,
       receiver,
-      offeredSkill,
+      offeredSkill: offeredSkill || null,
       requestedSkill,
       status: "pending",
     });
@@ -61,10 +63,11 @@ export const sendExchangeRequest = async (req, res) => {
       });
     }
 
+    // Create request
     const request = await SkillExchangeRequest.create({
       sender: senderId,
       receiver,
-      offeredSkill,
+      offeredSkill: offeredSkill || null,
       requestedSkill,
       message,
     });
@@ -147,6 +150,7 @@ export const acceptExchangeRequest = async (req, res) => {
       });
     }
 
+    // Request must be pending
     if (request.status !== "pending") {
       return res.status(400).json({
         message: `Request is already ${request.status}`,
@@ -189,6 +193,7 @@ export const rejectExchangeRequest = async (req, res) => {
       });
     }
 
+    // Request must be pending
     if (request.status !== "pending") {
       return res.status(400).json({
         message: `Request is already ${request.status}`,
