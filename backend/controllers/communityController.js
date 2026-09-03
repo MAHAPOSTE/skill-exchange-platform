@@ -163,3 +163,186 @@ export const removeMember = async (req, res) => {
     });
   }
 };
+
+// Create Post / Announcement - Community Mentor only
+export const createPost = async (req, res) => {
+  try {
+    const { title, content, type } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({
+        message: "Title and content are required",
+      });
+    }
+
+    if (type && !["post", "announcement"].includes(type)) {
+      return res.status(400).json({
+        message: "Type must be either post or announcement",
+      });
+    }
+
+    const community = await Community.findById(req.params.id);
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    // Only community mentor can create posts
+    if (community.mentor.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: "Only the community mentor can create posts",
+      });
+    }
+
+    community.posts.push({
+      title,
+      content,
+      type: type || "post",
+    });
+
+    await community.save();
+
+    const newPost = community.posts[community.posts.length - 1];
+
+    res.status(201).json({
+      message: "Post created successfully",
+      post: newPost,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to create post",
+      error: error.message,
+    });
+  }
+};
+
+// Get Community Posts - Logged-in users
+export const getCommunityPosts = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id)
+      .select("name posts");
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    res.status(200).json({
+      community: community.name,
+      count: community.posts.length,
+      posts: community.posts,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch posts",
+      error: error.message,
+    });
+  }
+};
+
+// Update Post / Announcement - Community Mentor only
+export const updatePost = async (req, res) => {
+  try {
+    const { id, postId } = req.params;
+    const { title, content, type } = req.body;
+
+    const community = await Community.findById(id);
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    if (community.mentor.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: "Only the community mentor can update posts",
+      });
+    }
+
+    const post = community.posts.id(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    if (type && !["post", "announcement"].includes(type)) {
+      return res.status(400).json({
+        message: "Type must be either post or announcement",
+      });
+    }
+
+    if (title !== undefined) {
+      post.title = title;
+    }
+
+    if (content !== undefined) {
+      post.content = content;
+    }
+
+    if (type !== undefined) {
+      post.type = type;
+    }
+
+    post.updatedAt = new Date();
+
+    await community.save();
+
+    res.status(200).json({
+      message: "Post updated successfully",
+      post,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update post",
+      error: error.message,
+    });
+  }
+};
+
+// Delete Post / Announcement - Community Mentor only
+export const deletePost = async (req, res) => {
+  try {
+    const { id, postId } = req.params;
+
+    const community = await Community.findById(id);
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    if (community.mentor.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: "Only the community mentor can delete posts",
+      });
+    }
+
+    const post = community.posts.id(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    post.deleteOne();
+
+    await community.save();
+
+    res.status(200).json({
+      message: "Post deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete post",
+      error: error.message,
+    });
+  }
+};
