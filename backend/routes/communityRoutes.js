@@ -7,6 +7,7 @@ import {
   createCommunity,
   getCommunities,
   joinCommunity,
+  leaveCommunity,
   getCommunityMembers,
   removeMember,
   createPost,
@@ -32,6 +33,12 @@ router.post(
   "/:id/join",
   authMiddleware,
   joinCommunity
+);
+
+router.delete(
+  "/:id/leave",
+  authMiddleware,
+  leaveCommunity
 );
 
 // Create post / announcement - Mentor only

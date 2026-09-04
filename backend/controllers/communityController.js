@@ -33,9 +33,35 @@ export const createCommunity = async (req, res) => {
 // Get all communities
 export const getCommunities = async (req, res) => {
   try {
-    const communities = await Community.find()
+    const { search, sort } = req.query;
+
+    const query = {};
+
+    // Search by community name
+    if (search) {
+      query.name = {
+        $regex: search,
+        $options: "i",
+      };
+    }
+
+    let sortOption = { createdAt: -1 };
+
+    // Sorting
+    if (sort === "oldest") {
+      sortOption = { createdAt: 1 };
+    } else if (sort === "name_asc") {
+      sortOption = { name: 1 };
+    } else if (sort === "name_desc") {
+      sortOption = { name: -1 };
+    } else if (sort === "newest") {
+      sortOption = { createdAt: -1 };
+    }
+
+    const communities = await Community.find(query)
       .populate("mentor", "name email role")
-      .populate("members", "name email role");
+      .populate("members", "name email role")
+      .sort(sortOption);
 
     res.status(200).json({
       count: communities.length,
@@ -79,6 +105,51 @@ export const joinCommunity = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to join community",
+      error: error.message,
+    });
+  }
+};
+
+// Leave community - Logged-in user
+export const leaveCommunity = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    // Community mentor cannot leave their own community
+    if (community.mentor.toString() === req.user.id) {
+      return res.status(400).json({
+        message: "Community mentor cannot leave their own community",
+      });
+    }
+
+    const isMember = community.members.some(
+      (member) => member.toString() === req.user.id
+    );
+
+    if (!isMember) {
+      return res.status(400).json({
+        message: "You are not a member of this community",
+      });
+    }
+
+    community.members = community.members.filter(
+      (member) => member.toString() !== req.user.id
+    );
+
+    await community.save();
+
+    res.status(200).json({
+      message: "Left community successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to leave community",
       error: error.message,
     });
   }
