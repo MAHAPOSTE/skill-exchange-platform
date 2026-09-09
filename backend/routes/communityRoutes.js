@@ -16,6 +16,8 @@ import {
   updatePost,
   deletePost,
   uploadCommunityResource,
+  getCommunityResources,
+  deleteCommunityResource,
 } from "../controllers/communityController.js";
 const router = express.Router();
 
@@ -95,5 +97,17 @@ router.post(
   authMiddleware,
   upload.single("file"),
   uploadCommunityResource
+);
+
+router.get(
+  "/:id/resources",
+  authMiddleware,
+  getCommunityResources
+);
+
+router.delete(
+  "/:id/resources/:resourceId",
+  authMiddleware,
+  deleteCommunityResource
 );
 export default router;

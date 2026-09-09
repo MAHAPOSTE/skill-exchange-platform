@@ -1,5 +1,6 @@
 import Community from "../models/communityModel.js";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
+import cloudinary from "../config/cloudinary.js";
 
 // Create community - Mentor only
 export const createCommunity = async (req, res) => {
@@ -484,6 +485,97 @@ export const uploadCommunityResource = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to upload resource",
+      error: error.message,
+    });
+  }
+};
+
+export const getCommunityResources = async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id)
+      .select("name mentor members resources")
+      .populate("resources.uploadedBy", "name email role");
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    const isMentor =
+      community.mentor.toString() === req.user.id;
+
+    const isMember = community.members.some(
+      (member) => member.toString() === req.user.id
+    );
+
+    if (!isMentor && !isMember) {
+      return res.status(403).json({
+        message: "Only community members can access resources",
+      });
+    }
+
+    res.status(200).json({
+      community: community.name,
+      count: community.resources.length,
+      resources: community.resources,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch resources",
+      error: error.message,
+    });
+  }
+};
+
+export const deleteCommunityResource = async (req, res) => {
+  try {
+    const { id, resourceId } = req.params;
+
+    const community = await Community.findById(id);
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    const resource = community.resources.id(resourceId);
+
+    if (!resource) {
+      return res.status(404).json({
+        message: "Resource not found",
+      });
+    }
+
+    const isMentor =
+      community.mentor.toString() === req.user.id;
+
+    const isUploader =
+      resource.uploadedBy.toString() === req.user.id;
+
+    if (!isMentor && !isUploader) {
+      return res.status(403).json({
+        message: "Only the mentor or resource uploader can delete this resource",
+      });
+    }
+
+    // Delete file from Cloudinary
+    await cloudinary.uploader.destroy(resource.publicId, {
+      resource_type: resource.resourceType || "raw",
+    });
+
+    // Remove resource from MongoDB
+    community.resources.pull(resourceId);
+
+    await community.save();
+
+    res.status(200).json({
+      message: "Learning resource deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete resource",
       error: error.message,
     });
   }
