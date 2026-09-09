@@ -2,13 +2,13 @@ import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import transporter from "../config/mailer.js";
 
 // Register
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Required fields
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "All fields are required",
@@ -35,7 +35,6 @@ export const register = async (req, res) => {
       });
     }
 
-    // Check existing user
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -44,10 +43,8 @@ export const register = async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const user = await User.create({
       name,
       email,
@@ -153,19 +150,63 @@ export const forgotPassword = async (req, res) => {
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // Store token and expiry time (15 minutes)
+    // Store token and expiry time - 15 minutes
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
 
     await user.save();
 
+    // Email configuration
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Skill Exchange Platform - Password Reset",
+      html: `
+        <div style="font-family: Arial, sans-serif;">
+          <h2>Password Reset Request</h2>
+
+          <p>Hello ${user.name},</p>
+
+          <p>
+            We received a request to reset your password for
+            <strong>Skill Exchange Platform</strong>.
+          </p>
+
+          <p>Your password reset token is:</p>
+
+          <p>
+            <strong>${resetToken}</strong>
+          </p>
+
+          <p>
+            This token will expire in <strong>15 minutes</strong>.
+          </p>
+
+          <p>
+            If you did not request a password reset, please ignore this email.
+          </p>
+
+          <br>
+
+          <p>
+            Thank you,<br>
+            <strong>Skill Exchange Platform</strong>
+          </p>
+        </div>
+      `,
+    };
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+
     res.status(200).json({
-      message: "Password reset token generated successfully",
-      resetToken,
+      message: "Password reset token has been sent to your email",
     });
   } catch (error) {
+    console.error("Forgot password email error:", error);
+
     res.status(500).json({
-      message: "Failed to process forgot password",
+      message: "Failed to send password reset email",
       error: error.message,
     });
   }
@@ -194,7 +235,7 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    // Find user with valid, non-expired token
+    // Find user with valid token
     const user = await User.findOne({
       resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() },
