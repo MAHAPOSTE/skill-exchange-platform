@@ -5,9 +5,11 @@ import {
   updateMyProfile,
   getUsersBySkill,
   getUserProfile,
+  uploadProfilePicture,
 } from "../controllers/userController.js";
 
 import authMiddleware from "../middlewares/authMiddleware.js";
+import uploadProfileImage from "../middlewares/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -22,5 +24,12 @@ router.get("/", getUsersBySkill);
 
 // View another user's profile
 router.get("/:id", authMiddleware, getUserProfile);
+
+router.put(
+  "/profile/image",
+  authMiddleware,
+  uploadProfileImage.single("image"),
+  uploadProfilePicture
+);
 
 export default router;

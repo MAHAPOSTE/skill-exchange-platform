@@ -1,5 +1,7 @@
 import User from "../models/userModel.js";
 import Skill from "../models/skillModel.js";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
+import cloudinary from "../config/cloudinary.js";
 
 // Get My Profile
 export const getMyProfile = async (req, res) => {
@@ -166,6 +168,52 @@ export const getUserProfile = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch user profile",
+      error: error.message,
+    });
+  }
+};
+
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Please select a profile image",
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      "skill-exchange/profile-images",
+      "image"
+    );
+
+    // Delete old profile image from Cloudinary
+    if (user.profileImagePublicId) {
+      await cloudinary.uploader.destroy(
+        user.profileImagePublicId
+      );
+    }
+
+    user.profileImage = result.secure_url;
+    user.profileImagePublicId = result.public_id;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile image uploaded successfully",
+      profileImage: user.profileImage,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to upload profile image",
       error: error.message,
     });
   }

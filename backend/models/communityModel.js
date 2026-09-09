@@ -58,6 +58,40 @@ const communitySchema = new mongoose.Schema(
         },
       },
     ],
+    resources: [
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    fileUrl: {
+      type: String,
+      required: true,
+    },
+    publicId: {
+      type: String,
+      required: true,
+    },
+    resourceType: {
+      type: String,
+      default: "raw",
+    },
+    format: {
+      type: String,
+      default: "",
+    },
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
   },
   {
     timestamps: true,

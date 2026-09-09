@@ -34,10 +34,14 @@ const userSchema = new mongoose.Schema(
     },
 
     profileImage: {
-      type: String,
-      default: "",
-    },
+  type: String,
+  default: "",
+},
 
+profileImagePublicId: {
+  type: String,
+  default: "",
+},
     resetPasswordToken: {
       type: String,
       default: null,
