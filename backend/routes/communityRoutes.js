@@ -2,6 +2,7 @@ import express from "express";
 
 import authMiddleware from "../middlewares/authMiddleware.js";
 import roleMiddleware from "../middlewares/roleMiddleware.js";
+import upload from "../middlewares/uploadMiddleware.js";
 
 import {
   createCommunity,
@@ -14,6 +15,7 @@ import {
   getCommunityPosts,
   updatePost,
   deletePost,
+  uploadCommunityResource,
 } from "../controllers/communityController.js";
 const router = express.Router();
 
@@ -88,4 +90,10 @@ router.delete(
   removeMember
 );
 
+router.post(
+  "/:id/resources",
+  authMiddleware,
+  upload.single("file"),
+  uploadCommunityResource
+);
 export default router;

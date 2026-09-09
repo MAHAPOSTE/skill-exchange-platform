@@ -1,4 +1,5 @@
 import Community from "../models/communityModel.js";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 
 // Create community - Mentor only
 export const createCommunity = async (req, res) => {
@@ -413,6 +414,76 @@ export const deletePost = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to delete post",
+      error: error.message,
+    });
+  }
+};
+
+export const uploadCommunityResource = async (req, res) => {
+  try {
+    const { title } = req.body;
+
+    if (!title) {
+      return res.status(400).json({
+        message: "Resource title is required",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Please select a file",
+      });
+    }
+
+    const community = await Community.findById(req.params.id);
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    // Mentor or community member can upload
+    const isMentor =
+      community.mentor.toString() === req.user.id;
+
+    const isMember = community.members.some(
+      (member) => member.toString() === req.user.id
+    );
+
+    if (!isMentor && !isMember) {
+      return res.status(403).json({
+        message: "Only community members can upload resources",
+      });
+    }
+
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      "skill-exchange/community-resources",
+      "auto"
+    );
+
+    community.resources.push({
+      title,
+      fileUrl: result.secure_url,
+      publicId: result.public_id,
+      resourceType: result.resource_type,
+      format: result.format || "",
+      uploadedBy: req.user.id,
+    });
+
+    await community.save();
+
+    const resource =
+      community.resources[community.resources.length - 1];
+
+    res.status(201).json({
+      message: "Learning resource uploaded successfully",
+      resource,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to upload resource",
       error: error.message,
     });
   }
