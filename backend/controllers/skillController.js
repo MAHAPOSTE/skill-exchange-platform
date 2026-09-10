@@ -30,12 +30,12 @@ export const addSkill = async (req, res) => {
 
 export const getSkills = async (req, res) => {
   try {
-    const skills = await Skill.find({
-      user: req.user.id,
-    });
+    const skills = await Skill.find()
+      .populate("user", "name email role");
 
     res.status(200).json({
-      skills: skills,
+      count: skills.length,
+      skills,
     });
   } catch (error) {
     res.status(500).json({

@@ -1,4 +1,5 @@
 import { askGemini } from "../services/aiService.js";
+import { retrieveContext } from "../services/ragService.js";
 
 export const askAI = async (req, res) => {
   try {
@@ -14,14 +15,41 @@ export const askAI = async (req, res) => {
 
     console.log("Question:", question);
 
-    const answer = await askGemini(question);
+    const context = await retrieveContext(question);
 
-    console.log("Gemini response received");
+    const prompt = `
+You are the AI assistant for a Skill Exchange Platform.
 
-    res.status(200).json({
-      question,
-      answer,
-    });
+Answer the user's question using the platform information provided below.
+
+Platform information:
+${JSON.stringify(context)}
+
+User question:
+${question}
+
+If the platform information does not contain enough information, clearly say that the platform does not currently have enough information.
+`;
+
+    const answer = await askGemini(prompt);
+
+    const sources = [
+  ...context.communities.map((community) => ({
+    type: "community",
+    name: community.name,
+  })),
+  ...context.skills.map((skill) => ({
+    type: "skill",
+    name: skill.name,
+    skillType: skill.type,
+  })),
+];
+
+res.status(200).json({
+  question,
+  answer,
+  sources,
+});
   } catch (error) {
     console.error("AI ERROR:", error);
 
