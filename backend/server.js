@@ -10,6 +10,7 @@ import mentorRequestRoutes from "./routes/mentorRequestRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
 import skillExchangeRequestRoutes from "./routes/skillExchangeRequestRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use("/api/mentor-requests", mentorRequestRoutes);
 app.use("/api/communities", communityRoutes);
 app.use("/api/skill-exchange-requests", skillExchangeRequestRoutes);
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
