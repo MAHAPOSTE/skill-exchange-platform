@@ -81,6 +81,10 @@ const communitySchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    content: {
+  type: String,
+  default: "",
+},
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

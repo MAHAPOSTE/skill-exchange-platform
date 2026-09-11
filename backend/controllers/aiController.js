@@ -43,6 +43,12 @@ If the platform information does not contain enough information, clearly say tha
     name: skill.name,
     skillType: skill.type,
   })),
+  ...context.communities.flatMap((community) =>
+    community.resources.map((resource) => ({
+      type: "learning-resource",
+      name: resource.title,
+    }))
+  ),
 ];
 
 res.status(200).json({

@@ -13,6 +13,7 @@ export const retrieveContext = async (question) => {
     { "posts.title": { $regex: word, $options: "i" } },
     { "posts.content": { $regex: word, $options: "i" } },
     { "resources.title": { $regex: word, $options: "i" } },
+    { "resources.content": { $regex: word, $options: "i" } },
   ]);
 
   let communities = [];
@@ -42,6 +43,11 @@ export const retrieveContext = async (question) => {
     .populate("user", "name email")
     .limit(10);
 
+
+//   console.log(
+//   "RAG RESOURCES:",
+//   communities.flatMap((community) => community.resources)
+// );
   return {
     communities,
     skills,

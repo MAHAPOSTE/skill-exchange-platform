@@ -1,6 +1,7 @@
 import Community from "../models/communityModel.js";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 import cloudinary from "../config/cloudinary.js";
+import { PDFParse } from "pdf-parse";
 
 // Create community - Mentor only
 export const createCommunity = async (req, res) => {
@@ -436,6 +437,20 @@ export const uploadCommunityResource = async (req, res) => {
       });
     }
 
+    let content = "";
+
+    if (req.file.mimetype === "application/pdf") {
+      const parser = new PDFParse({
+        data: req.file.buffer,
+      });
+
+      const pdfData = await parser.getText();
+      content = pdfData.text;
+      console.log("Extracted PDF text:", content);
+
+      await parser.destroy();
+    }
+
     const community = await Community.findById(req.params.id);
 
     if (!community) {
@@ -444,7 +459,6 @@ export const uploadCommunityResource = async (req, res) => {
       });
     }
 
-    // Mentor or community member can upload
     const isMentor =
       community.mentor.toString() === req.user.id;
 
@@ -470,6 +484,7 @@ export const uploadCommunityResource = async (req, res) => {
       publicId: result.public_id,
       resourceType: result.resource_type,
       format: result.format || "",
+      content,
       uploadedBy: req.user.id,
     });
 
@@ -501,7 +516,7 @@ export const getCommunityResources = async (req, res) => {
         message: "Community not found",
       });
     }
-
+  
     const isMentor =
       community.mentor.toString() === req.user.id;
 
