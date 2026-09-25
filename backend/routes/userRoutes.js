@@ -6,10 +6,12 @@ import {
   getUsersBySkill,
   getUserProfile,
   uploadProfilePicture,
+  getAllUsers,
 } from "../controllers/userController.js";
 
 import authMiddleware from "../middlewares/authMiddleware.js";
 import uploadProfileImage from "../middlewares/uploadMiddleware.js";
+import roleMiddleware from "../middlewares/roleMiddleware.js";
 
 const router = express.Router();
 
@@ -21,6 +23,13 @@ router.put("/profile", authMiddleware, updateMyProfile);
 
 // Search users by skill with pagination
 router.get("/", getUsersBySkill);
+
+router.get(
+  "/admin/all",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getAllUsers
+);
 
 // View another user's profile
 router.get("/:id", authMiddleware, getUserProfile);

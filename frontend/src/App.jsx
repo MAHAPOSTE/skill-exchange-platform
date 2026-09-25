@@ -3,12 +3,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
+import Users from "./pages/Users";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Skills from "./pages/Skills";
 import Communities from "./pages/Communities";
 import ExchangeRequests from "./pages/ExchangeRequests";
 import Sessions from "./pages/Sessions";
+import Statistics from "./pages/Statistics";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -37,6 +39,8 @@ function App() {
           <Route path="/skill-exchange" element={<ExchangeRequests />} />
           <Route path="/sessions" element={<Sessions />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/statistics" element={<Statistics />} />
+          <Route path="/users" element={<Users />} />
         </Route>
 
       </Routes>
