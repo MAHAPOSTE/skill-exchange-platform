@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import api from "../api";
 
 function Dashboard() {
+  const { user } = useOutletContext();
+
   const [stats, setStats] = useState({
     users: 0,
     mentors: 0,
@@ -39,6 +42,10 @@ function Dashboard() {
     fetchDashboardStats();
   }, []);
 
+  if (!user) {
+    return <h2>Loading dashboard...</h2>;
+  }
+
   if (loading) {
     return <h2>Loading dashboard...</h2>;
   }
@@ -52,46 +59,100 @@ function Dashboard() {
 
       <h1>Dashboard</h1>
 
-      <p>Welcome to Skill Exchange Platform</p>
+      <p>Welcome, {user.name}</p>
 
-      <div className="stats-grid">
+      {user.role === "user" && (
+        <div className="stats-grid">
 
-        <div className="stat-card">
-          <h3>Total Users</h3>
-          <p>{stats.users}</p>
+          <div className="stat-card">
+            <h3>My Skills</h3>
+            <p>{stats.skills}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Communities</h3>
+            <p>{stats.communities}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Exchange Requests</h3>
+            <p>{stats.exchangeRequests}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Sessions</h3>
+            <p>{stats.sessions}</p>
+          </div>
+
         </div>
+      )}
 
-        <div className="stat-card">
-          <h3>Mentors</h3>
-          <p>{stats.mentors}</p>
+      {user.role === "mentor" && (
+        <div className="stats-grid">
+
+          <div className="stat-card">
+            <h3>Skills</h3>
+            <p>{stats.skills}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Communities</h3>
+            <p>{stats.communities}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Exchange Requests</h3>
+            <p>{stats.exchangeRequests}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Sessions</h3>
+            <p>{stats.sessions}</p>
+          </div>
+
         </div>
+      )}
 
-        <div className="stat-card">
-          <h3>Skills</h3>
-          <p>{stats.skills}</p>
+      {user.role === "admin" && (
+        <div className="stats-grid">
+
+          <div className="stat-card">
+            <h3>Total Users</h3>
+            <p>{stats.users}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Mentors</h3>
+            <p>{stats.mentors}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Total Skills</h3>
+            <p>{stats.skills}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Communities</h3>
+            <p>{stats.communities}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Exchange Requests</h3>
+            <p>{stats.exchangeRequests}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Sessions</h3>
+            <p>{stats.sessions}</p>
+          </div>
+
+          <div className="stat-card">
+            <h3>Pending Mentor Requests</h3>
+            <p>{stats.pendingMentorRequests}</p>
+          </div>
+
         </div>
-
-        <div className="stat-card">
-          <h3>Communities</h3>
-          <p>{stats.communities}</p>
-        </div>
-
-        <div className="stat-card">
-          <h3>Exchange Requests</h3>
-          <p>{stats.exchangeRequests}</p>
-        </div>
-
-        <div className="stat-card">
-          <h3>Sessions</h3>
-          <p>{stats.sessions}</p>
-        </div>
-
-        <div className="stat-card">
-          <h3>Pending Mentor Requests</h3>
-          <p>{stats.pendingMentorRequests}</p>
-        </div>
-
-      </div>
+      )}
 
     </div>
   );
