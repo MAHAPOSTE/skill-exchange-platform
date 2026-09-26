@@ -38,9 +38,9 @@ export const createMentorRequest = async (req, res) => {
 
 export const getMentorRequests = async (req, res) => {
   try {
-    const requests = await MentorRequest.find({
-      status: "pending",
-    }).populate("user", "name email role");
+    const requests = await MentorRequest.find()
+      .populate("user", "name email role")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       count: requests.length,
