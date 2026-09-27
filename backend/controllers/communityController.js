@@ -36,11 +36,15 @@ export const createCommunity = async (req, res) => {
 // Get all communities
 export const getCommunities = async (req, res) => {
   try {
-    const { search, sort } = req.query;
+    const {
+      search,
+      sort,
+      page = 1,
+      limit = 10,
+    } = req.query;
 
     const query = {};
 
-    // Search by community name
     if (search) {
       query.name = {
         $regex: search,
@@ -50,7 +54,6 @@ export const getCommunities = async (req, res) => {
 
     let sortOption = { createdAt: -1 };
 
-    // Sorting
     if (sort === "oldest") {
       sortOption = { createdAt: 1 };
     } else if (sort === "name_asc") {
@@ -61,13 +64,23 @@ export const getCommunities = async (req, res) => {
       sortOption = { createdAt: -1 };
     }
 
+    const skip = (page - 1) * limit;
+
+    const totalCommunities = await Community.countDocuments(query);
+
     const communities = await Community.find(query)
       .populate("mentor", "name email role")
       .populate("members", "name email role")
-      .sort(sortOption);
+      .sort(sortOption)
+      .skip(skip)
+      .limit(Number(limit));
 
     res.status(200).json({
       count: communities.length,
+      totalCommunities,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(totalCommunities / limit),
       communities,
     });
   } catch (error) {

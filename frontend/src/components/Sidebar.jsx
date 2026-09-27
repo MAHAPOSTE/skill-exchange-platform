@@ -19,7 +19,6 @@ function Sidebar({ role }) {
 
         {role === "mentor" && (
           <>
-            <Link to="/profile">Profile</Link>
             <Link to="/skills">Skills</Link>
             <Link to="/communities">Communities</Link>
             <Link to="/skill-exchange">Exchange Requests</Link>
