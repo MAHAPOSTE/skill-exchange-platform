@@ -1,7 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import api from "../api";
 
-
 export const fetchCommunities = createAsyncThunk(
   "communities/fetchCommunities",
   async (
@@ -28,63 +27,34 @@ export const fetchCommunities = createAsyncThunk(
   }
 );
 
-const communitiesSlice = createSlice({
-  name: "communities",
+export const createCommunity = createAsyncThunk(
+  "communities/createCommunity",
+  async ({ name, description }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
 
-  initialState: {
-    communities: [],
-    totalCommunities: 0,
-    page: 1,
-    limit: 10,
-    totalPages: 0,
-    loading: false,
-    error: "",
-  },
-
-  reducers: {},
-
-  extraReducers: (builder) => {
-  builder
-    .addCase(fetchCommunities.pending, (state) => {
-      state.loading = true;
-      state.error = "";
-    })
-
-    .addCase(fetchCommunities.fulfilled, (state, action) => {
-      state.loading = false;
-      state.communities = action.payload.communities;
-      state.totalCommunities = action.payload.totalCommunities;
-      state.page = action.payload.page;
-      state.limit = action.payload.limit;
-      state.totalPages = action.payload.totalPages;
-    })
-
-    .addCase(fetchCommunities.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload;
-    })
-
-    .addCase(joinCommunity.fulfilled, (state, action) => {
-      const joinedCommunity = action.payload.community;
-
-      const community = state.communities.find(
-        (item) => item._id === joinedCommunity._id
+      const response = await api.post(
+        "/api/communities",
+        {
+          name,
+          description,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
-      if (community) {
-        community.members = joinedCommunity.members;
-      }
-    })
-
-    .addCase(joinCommunity.rejected, (state, action) => {
-      state.error = action.payload;
-    })
-
-    .addCase(leaveCommunity.rejected, (state, action) => {
-      state.error = action.payload;
-    });
-}
-});
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          "Failed to create community"
+      );
+    }
+  }
+);
 
 export const joinCommunity = createAsyncThunk(
   "communities/joinCommunity",
@@ -139,5 +109,67 @@ export const leaveCommunity = createAsyncThunk(
     }
   }
 );
+
+const communitiesSlice = createSlice({
+  name: "communities",
+
+  initialState: {
+    communities: [],
+    totalCommunities: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+    loading: false,
+    error: "",
+  },
+
+  reducers: {},
+
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchCommunities.pending, (state) => {
+        state.loading = true;
+        state.error = "";
+      })
+
+      .addCase(fetchCommunities.fulfilled, (state, action) => {
+        state.loading = false;
+        state.communities = action.payload.communities;
+        state.totalCommunities = action.payload.totalCommunities;
+        state.page = action.payload.page;
+        state.limit = action.payload.limit;
+        state.totalPages = action.payload.totalPages;
+      })
+
+      .addCase(fetchCommunities.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      .addCase(joinCommunity.fulfilled, (state, action) => {
+        const joinedCommunity = action.payload.community;
+
+        const community = state.communities.find(
+          (item) => item._id === joinedCommunity._id
+        );
+
+        if (community) {
+          community.members = joinedCommunity.members;
+        }
+      })
+
+      .addCase(joinCommunity.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+
+      .addCase(leaveCommunity.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+
+      .addCase(createCommunity.rejected, (state, action) => {
+        state.error = action.payload;
+      });
+  },
+});
 
 export default communitiesSlice.reducer;

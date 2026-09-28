@@ -5,6 +5,7 @@ import {
   fetchCommunities,
   joinCommunity,
   leaveCommunity,
+  createCommunity,
 } from "../store/communitiesSlice";
 
 function Communities() {
@@ -23,6 +24,9 @@ function Communities() {
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [communityName, setCommunityName] = useState("");
+  const [communityDescription, setCommunityDescription] = useState("");
+  const [createError, setCreateError] = useState("");
 
   useEffect(() => {
     dispatch(
@@ -90,10 +94,69 @@ function Communities() {
       console.error(error);
     }
   };
+  const handleCreateCommunity = async (e) => {
+  e.preventDefault();
+
+  setCreateError("");
+
+  try {
+    await dispatch(
+      createCommunity({
+        name: communityName,
+        description: communityDescription,
+      })
+    ).unwrap();
+
+    setCommunityName("");
+    setCommunityDescription("");
+
+    dispatch(
+      fetchCommunities({
+        search,
+        sort,
+        page,
+        limit,
+      })
+    );
+  } catch (error) {
+    setCreateError(error);
+  }
+};
 
   return (
     <div className="communities-page">
       <h1>Communities</h1>
+
+      {user?.role === "mentor" && (
+  <div className="create-community">
+    <h2>Create Community</h2>
+
+    <form onSubmit={handleCreateCommunity}>
+      <input
+        type="text"
+        placeholder="Community name"
+        value={communityName}
+        onChange={(e) => setCommunityName(e.target.value)}
+        required
+      />
+
+      <textarea
+        placeholder="Community description"
+        value={communityDescription}
+        onChange={(e) =>
+          setCommunityDescription(e.target.value)
+        }
+        required
+      />
+
+      <button type="submit">
+        Create Community
+      </button>
+    </form>
+
+    {createError && <p>{createError}</p>}
+  </div>
+)}
 
       <p>
         {user?.role === "admin"
@@ -180,10 +243,15 @@ function Communities() {
               )}
 
               {user?.role === "mentor" && (
-                <button type="button">
-                  Manage Community
-                </button>
-              )}
+              <button
+               type="button"
+                  onClick={() =>
+                  window.location.href = `/communities/${community._id}/manage`
+                   }
+                    >
+                   Manage Community
+                   </button>
+                       )}
 
               {user?.role === "admin" && (
                 <button type="button">

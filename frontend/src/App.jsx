@@ -12,6 +12,7 @@ import ExchangeRequests from "./pages/ExchangeRequests";
 import Sessions from "./pages/Sessions";
 import Statistics from "./pages/Statistics";
 import MentorRequests from "./pages/MentorRequests";
+import ManageCommunity from "./pages/ManageCommunity";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -42,8 +43,9 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/users" element={<Users />} />
-          <Route path="/mentor-requests" element={<MentorRequests />}
-/>
+          <Route path="/mentor-requests" element={<MentorRequests />} />
+          <Route path="/communities/:id/manage" element={<ManageCommunity />} />
+         
           
         </Route>
 

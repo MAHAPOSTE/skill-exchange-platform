@@ -33,6 +33,47 @@ export const createCommunity = async (req, res) => {
   }
 };
 
+// Update community - Mentor only
+export const updateCommunity = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+
+    if (!name || !description) {
+      return res.status(400).json({
+        message: "Name and description are required",
+      });
+    }
+
+    const community = await Community.findById(req.params.id);
+
+    if (!community) {
+      return res.status(404).json({
+        message: "Community not found",
+      });
+    }
+
+    if (community.mentor.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: "Only the community mentor can update this community",
+      });
+    }
+
+    community.name = name;
+    community.description = description;
+
+    await community.save();
+
+    res.status(200).json({
+      message: "Community updated successfully",
+      community,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update community",
+      error: error.message,
+    });
+  }
+};
 // Get all communities
 export const getCommunities = async (req, res) => {
   try {

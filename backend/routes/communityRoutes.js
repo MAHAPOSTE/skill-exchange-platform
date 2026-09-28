@@ -9,6 +9,7 @@ import {
   getCommunities,
   joinCommunity,
   leaveCommunity,
+  updateCommunity,
   getCommunityMembers,
   removeMember,
   createPost,
@@ -28,7 +29,12 @@ router.post(
   roleMiddleware("mentor"),
   createCommunity
 );
-
+router.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("mentor"),
+  updateCommunity
+);
 // Anyone can view communities
 router.get("/", getCommunities);
 
