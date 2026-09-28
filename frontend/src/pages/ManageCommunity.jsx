@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
+import { useOutletContext } from "react-router-dom";
 
 function ManageCommunity() {
   const { id } = useParams();
+  const { user } = useOutletContext();
 
   const [members, setMembers] = useState([]);
   const [communityName, setCommunityName] = useState("");
@@ -20,6 +22,11 @@ function ManageCommunity() {
   const [editPostTitle, setEditPostTitle] = useState("");
   const [editPostContent, setEditPostContent] = useState("");
   const [editPostType, setEditPostType] = useState("post");
+
+  const [resources, setResources] = useState([]);
+  const [resourceTitle, setResourceTitle] = useState("");
+  const [resourceFile, setResourceFile] = useState(null);
+  const [resourceMessage, setResourceMessage] = useState(""); 
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,6 +75,16 @@ function ManageCommunity() {
             },
           }
         );
+        const resourcesResponse = await api.get(
+  `/api/communities/${id}/resources`,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+
+setResources(resourcesResponse.data.resources);
 
         setPosts(postsResponse.data.posts);
       } catch (error) {
@@ -113,6 +130,83 @@ function ManageCommunity() {
       );
     }
   };
+  
+  const handleUploadResource = async (e) => {
+  e.preventDefault();
+
+  setResourceMessage("");
+  setError("");
+
+  if (!resourceFile) {
+    setResourceMessage("Please select a file");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+    console.log("Token:", token);
+
+    const formData = new FormData();
+
+    formData.append("title", resourceTitle);
+    formData.append("file", resourceFile);
+
+    const response = await api.post(
+      `/api/communities/${id}/resources`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setResources([response.data.resource, ...resources]);
+
+    setResourceTitle("");
+    setResourceFile(null);
+
+    document.getElementById("resource-file").value = "";
+
+    setResourceMessage(response.data.message);
+  } catch (error) {
+    setError(
+      error.response?.data?.message ||
+        "Failed to upload resource"
+    );
+  }
+};
+
+const handleDeleteResource = async (resourceId) => {
+  setResourceMessage("");
+  setError("");
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      `/api/communities/${id}/resources/${resourceId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setResources(
+      resources.filter(
+        (resource) => resource._id !== resourceId
+      )
+    );
+
+    setResourceMessage(response.data.message);
+  } catch (error) {
+    setError(
+      error.response?.data?.message ||
+        "Failed to delete resource"
+    );
+  }
+};
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
@@ -490,6 +584,96 @@ function ManageCommunity() {
           ))
         )}
       </div>
+      <div className="community-resources">
+  <h2>Community Resources</h2>
+
+  {(user?.role === "user" || user?.role === "mentor") && (
+    <form onSubmit={handleUploadResource}>
+      <div>
+        <label>Resource Title</label>
+
+        <input
+          type="text"
+          value={resourceTitle}
+          onChange={(e) =>
+            setResourceTitle(e.target.value)
+          }
+          placeholder="Enter resource title"
+          required
+        />
+      </div>
+
+      <div>
+        <label>File</label>
+
+        <input
+          id="resource-file"
+          type="file"
+          onChange={(e) =>
+            setResourceFile(e.target.files[0])
+          }
+          required
+        />
+      </div>
+
+      <button type="submit">
+        Upload Resource
+      </button>
+    </form>
+  )}
+
+  {resourceMessage && <p>{resourceMessage}</p>}
+
+  <div>
+    <h3>Available Resources</h3>
+
+    {resources.length === 0 ? (
+      <p>No resources available.</p>
+    ) : (
+      resources.map((resource) => {
+        const isUploader =
+          resource.uploadedBy?._id === user?._id;
+
+        const canDelete =
+          user?.role === "mentor" || isUploader;
+
+        return (
+          <div key={resource._id}>
+            <h4>{resource.title}</h4>
+
+            <p>
+              Format: {resource.format || "Unknown"}
+            </p>
+
+            <p>
+              Uploaded by:{" "}
+              {resource.uploadedBy?.name || "Unknown"}
+            </p>
+
+            <a
+              href={resource.fileUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              View / Download
+            </a>
+
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() =>
+                  handleDeleteResource(resource._id)
+                }
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        );
+      })
+    )}
+  </div>
+</div>
     </div>
   );
 }

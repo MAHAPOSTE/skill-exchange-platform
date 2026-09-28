@@ -525,12 +525,13 @@ export const uploadCommunityResource = async (req, res) => {
         message: "Only community members can upload resources",
       });
     }
+const result = await uploadToCloudinary(
+  req.file.buffer,
+  "skill-exchange/community-resources",
+  "raw"
+);
 
-    const result = await uploadToCloudinary(
-      req.file.buffer,
-      "skill-exchange/community-resources",
-      "auto"
-    );
+console.log("Cloudinary result:", result);
 
     community.resources.push({
       title,
@@ -552,7 +553,9 @@ export const uploadCommunityResource = async (req, res) => {
       resource,
     });
   } catch (error) {
-    res.status(500).json({
+  console.error("Upload resource error:", error);
+
+  res.status(500).json({
       message: "Failed to upload resource",
       error: error.message,
     });
@@ -630,22 +633,30 @@ export const deleteCommunityResource = async (req, res) => {
     }
 
     // Delete file from Cloudinary
-    await cloudinary.uploader.destroy(resource.publicId, {
-      resource_type: resource.resourceType || "raw",
-    });
+    try {
+  await cloudinary.uploader.destroy(resource.publicId, {
+    resource_type: resource.resourceType || "raw",
+  });
+} catch (cloudinaryError) {
+  console.error(
+    "Cloudinary delete error:",
+    cloudinaryError
+  );
+}
 
-    // Remove resource from MongoDB
-    community.resources.pull(resourceId);
+community.resources.pull(resourceId);
 
-    await community.save();
+await community.save();
 
-    res.status(200).json({
-      message: "Learning resource deleted successfully",
-    });
+res.status(200).json({
+  message: "Learning resource deleted successfully",
+});
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to delete resource",
-      error: error.message,
-    });
-  }
+  console.error("Delete resource error:", error);
+
+  res.status(500).json({
+    message: "Failed to delete resource",
+    error: error.message,
+  });
+}
 };
