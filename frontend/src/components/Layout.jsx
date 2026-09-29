@@ -6,26 +6,35 @@ import Footer from "./Footer";
 
 function Layout() {
   const [user, setUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);  
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
-        const response = await api.get("/api/users/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  const response = await api.get("/api/users/profile", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-        setUser(response.data.profile);
-      } catch (error) {
-        console.error("Failed to load user profile");
-      }
+  console.log("Profile response:", response.data);
+   setUser(response.data.profile);
+}  catch (error) {
+  console.error("Failed to load user profile:", error);
+  console.error("Response:", error.response?.data);
+}
+ finally {
+  setLoadingUser(false);
+}
     };
 
     fetchProfile();
   }, []);
+  if (loadingUser) {
+  return <p>Loading...</p>;
+}
 
   return (
     <div className="app-layout">
