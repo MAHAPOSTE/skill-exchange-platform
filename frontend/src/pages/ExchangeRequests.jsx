@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import api from "../api";
 
 function ExchangeRequests() {
-  const [sentRequests, setSentRequests] = useState([]);
   const [receivedRequests, setReceivedRequests] = useState([]);
-
+  const [sentRequests, setSentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -15,25 +14,25 @@ function ExchangeRequests() {
 
       const token = localStorage.getItem("token");
 
-      const [sentResponse, receivedResponse] = await Promise.all([
-        api.get("/api/skill-exchange-requests/sent", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }),
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      const [receivedResponse, sentResponse] = await Promise.all([
         api.get("/api/skill-exchange-requests/received", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
+        }),
+        api.get("/api/skill-exchange-requests/sent", {
+          headers,
         }),
       ]);
 
-      setSentRequests(sentResponse.data.requests || []);
-      setReceivedRequests(receivedResponse.data.requests || []);
+      setReceivedRequests(receivedResponse.data.requests);
+      setSentRequests(sentResponse.data.requests);
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "Failed to fetch exchange requests"
+          "Failed to load exchange requests"
       );
     } finally {
       setLoading(false);
@@ -44,12 +43,12 @@ function ExchangeRequests() {
     fetchRequests();
   }, []);
 
-  const handleAccept = async (requestId) => {
+  const handleAccept = async (id) => {
     try {
       const token = localStorage.getItem("token");
 
       await api.put(
-        `/api/skill-exchange-requests/${requestId}/accept`,
+        `/api/skill-exchange-requests/${id}/accept`,
         {},
         {
           headers: {
@@ -62,17 +61,17 @@ function ExchangeRequests() {
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "Failed to accept request"
+          "Failed to accept exchange request"
       );
     }
   };
 
-  const handleReject = async (requestId) => {
+  const handleReject = async (id) => {
     try {
       const token = localStorage.getItem("token");
 
       await api.put(
-        `/api/skill-exchange-requests/${requestId}/reject`,
+        `/api/skill-exchange-requests/${id}/reject`,
         {},
         {
           headers: {
@@ -85,7 +84,7 @@ function ExchangeRequests() {
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "Failed to reject request"
+          "Failed to reject exchange request"
       );
     }
   };
@@ -101,7 +100,7 @@ function ExchangeRequests() {
 
       {error && <p>{error}</p>}
 
-      <section>
+      <div className="requests-section">
         <h2>Received Requests</h2>
 
         {receivedRequests.length === 0 ? (
@@ -109,17 +108,39 @@ function ExchangeRequests() {
         ) : (
           receivedRequests.map((request) => (
             <div
-              className="exchange-request-card"
+              className="request-card"
               key={request._id}
             >
               <h3>
-                {request.sender?.name || "Unknown User"}
+                From: {request.sender?.name}
               </h3>
 
               <p>
-                Skill:{" "}
-                {request.skill?.name || "Unknown Skill"}
+                Email: {request.sender?.email}
               </p>
+
+              <p>
+                Requested Skill:{" "}
+                {request.requestedSkill?.name}
+              </p>
+
+              <p>
+                Requested Skill Type:{" "}
+                {request.requestedSkill?.type}
+              </p>
+
+              {request.offeredSkill && (
+                <p>
+                  Offered Skill:{" "}
+                  {request.offeredSkill?.name}
+                </p>
+              )}
+
+              {request.message && (
+                <p>
+                  Message: {request.message}
+                </p>
+              )}
 
               <p>
                 Status: {request.status}
@@ -149,9 +170,9 @@ function ExchangeRequests() {
             </div>
           ))
         )}
-      </section>
+      </div>
 
-      <section>
+      <div className="requests-section">
         <h2>Sent Requests</h2>
 
         {sentRequests.length === 0 ? (
@@ -159,17 +180,34 @@ function ExchangeRequests() {
         ) : (
           sentRequests.map((request) => (
             <div
-              className="exchange-request-card"
+              className="request-card"
               key={request._id}
             >
               <h3>
-                {request.receiver?.name || "Unknown User"}
+                To: {request.receiver?.name}
               </h3>
 
               <p>
-                Skill:{" "}
-                {request.skill?.name || "Unknown Skill"}
+                Email: {request.receiver?.email}
               </p>
+
+              <p>
+                Requested Skill:{" "}
+                {request.requestedSkill?.name}
+              </p>
+
+              {request.offeredSkill && (
+                <p>
+                  Offered Skill:{" "}
+                  {request.offeredSkill?.name}
+                </p>
+              )}
+
+              {request.message && (
+                <p>
+                  Message: {request.message}
+                </p>
+              )}
 
               <p>
                 Status: {request.status}
@@ -177,7 +215,7 @@ function ExchangeRequests() {
             </div>
           ))
         )}
-      </section>
+      </div>
     </div>
   );
 }
