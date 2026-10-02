@@ -1,10 +1,28 @@
 import Session from "../models/sessionModel.js";
 import SkillExchangeRequest from "../models/skillExchangeRequestModel.js";
 
+const isSessionOwnerForRole = (session, user) => {
+  if (user.role === "mentor") {
+    return session.mentor.toString() === user.id;
+  }
+
+  if (user.role === "user") {
+    return session.learner.toString() === user.id;
+  }
+
+  return false;
+};
+
 // Create Session
 export const createSession = async (req, res) => {
   try {
     const { exchangeRequest, date, time, meetingLink } = req.body;
+
+    if (req.user.role !== "user") {
+      return res.status(403).json({
+        message: "Only users can schedule sessions",
+      });
+    }
 
     if (!exchangeRequest || !date || !time) {
       return res.status(400).json({
@@ -28,14 +46,14 @@ export const createSession = async (req, res) => {
       });
     }
 
-    // Only sender or receiver can create the session
+    // Either participant can schedule after the request is accepted.
     const isParticipant =
       request.sender.toString() === req.user.id ||
       request.receiver.toString() === req.user.id;
 
     if (!isParticipant) {
       return res.status(403).json({
-        message: "Only participants of the exchange can create a session",
+        message: "Only participants of the exchange can schedule a session",
       });
     }
 
@@ -78,12 +96,14 @@ export const createSession = async (req, res) => {
 // Get My Sessions
 export const getMySessions = async (req, res) => {
   try {
-    const sessions = await Session.find({
-      $or: [
-        { mentor: req.user.id },
-        { learner: req.user.id },
-      ],
-    })
+    const filter =
+      req.user.role === "admin" || req.user.role === "mentor"
+        ? {}
+        : {
+            $or: [{ mentor: req.user.id }, { learner: req.user.id }],
+          };
+
+    const sessions = await Session.find(filter)
       .populate("mentor", "name email role")
       .populate("learner", "name email role")
       .populate("exchangeRequest")
@@ -117,12 +137,17 @@ export const getSessionById = async (req, res) => {
       });
     }
 
-    // Only participants can view the session
-    const isParticipant =
-      session.mentor._id.toString() === req.user.id ||
-      session.learner._id.toString() === req.user.id;
-
-    if (!isParticipant) {
+    if (
+      req.user.role !== "admin" &&
+      req.user.role !== "mentor" &&
+      !isSessionOwnerForRole(
+        {
+          mentor: session.mentor._id,
+          learner: session.learner._id,
+        },
+        req.user
+      )
+    ) {
       return res.status(403).json({
         message: "You are not allowed to view this session",
       });
@@ -154,21 +179,16 @@ export const updateSession = async (req, res) => {
       });
     }
 
-    // Only participants can update
-    const isParticipant =
-      session.mentor.toString() === req.user.id ||
-      session.learner.toString() === req.user.id;
-
-    if (!isParticipant) {
+    if (req.user.role !== "mentor") {
       return res.status(403).json({
-        message: "Only session participants can update the session",
+        message: "Only mentors can update sessions",
       });
     }
 
-    // Do not update cancelled sessions
-    if (session.status === "cancelled") {
+    // Only scheduled sessions can be changed.
+    if (session.status !== "scheduled") {
       return res.status(400).json({
-        message: "Cancelled session cannot be updated",
+        message: `Session is already ${session.status}`,
       });
     }
 
@@ -211,14 +231,9 @@ export const cancelSession = async (req, res) => {
       });
     }
 
-    // Only participants can cancel
-    const isParticipant =
-      session.mentor.toString() === req.user.id ||
-      session.learner.toString() === req.user.id;
-
-    if (!isParticipant) {
+    if (req.user.role !== "mentor") {
       return res.status(403).json({
-        message: "Only session participants can cancel the session",
+        message: "Only mentors can cancel sessions",
       });
     }
 
@@ -257,14 +272,9 @@ export const completeSession = async (req, res) => {
       });
     }
 
-    // Only participants can complete
-    const isParticipant =
-      session.mentor.toString() === req.user.id ||
-      session.learner.toString() === req.user.id;
-
-    if (!isParticipant) {
+    if (req.user.role !== "mentor") {
       return res.status(403).json({
-        message: "Only session participants can complete the session",
+        message: "Only mentors can complete sessions",
       });
     }
 

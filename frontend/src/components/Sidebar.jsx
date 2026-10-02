@@ -31,6 +31,7 @@ function Sidebar({ role }) {
             <Link to="/users">Users</Link>
             <Link to="/mentor-requests">Mentor Requests</Link>
             <Link to="/communities">Communities</Link>
+            <Link to="/sessions">Sessions</Link>
             <Link to="/statistics">Statistics</Link>
           </>
         )}
