@@ -1,301 +1,511 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useOutletContext } from "react-router-dom";
-
+import api from "../api";
 import {
+  fetchSessions,
+  createSession,
+  updateSession,
   cancelSession,
   completeSession,
-  createSession,
-  fetchAcceptedRequests,
-  fetchSessions,
-  updateSession,
 } from "../store/sessionSlice";
 
 function Sessions() {
   const dispatch = useDispatch();
   const { user } = useOutletContext();
+
   const {
-    sessions = [],
-    acceptedRequests = [],
-    sentRequests = [],
+    sessions,
     loading,
     error,
   } = useSelector((state) => state.sessions);
 
-  const [formData, setFormData] = useState({
-    exchangeRequest: "",
-    date: "",
-    time: "",
-    meetingLink: "",
-  });
-  const [actionError, setActionError] = useState("");
+  const [acceptedRequests, setAcceptedRequests] = useState([]);
+  const [requestLoading, setRequestLoading] = useState(true);
 
-  const isUser = user?.role === "user";
-  const isMentor = user?.role === "mentor";
-  const isAdmin = user?.role === "admin";
-  const scheduledRequestIds = new Set(
-    sessions
-      .filter((session) => session.status === "scheduled")
-      .map((session) =>
-        typeof session.exchangeRequest === "object"
-          ? session.exchangeRequest?._id
-          : session.exchangeRequest
-      )
-  );
-  const schedulableRequests = acceptedRequests.filter(
-    (request) => !scheduledRequestIds.has(request._id)
-  );
+  const [selectedRequest, setSelectedRequest] = useState(null);
+
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [meetingLink, setMeetingLink] = useState("");
+
+  const [editingSession, setEditingSession] = useState(null);
+
+  const [successMessage, setSuccessMessage] = useState("");
+  const [requestError, setRequestError] = useState("");
 
   useEffect(() => {
-    if (!user?.role) return;
-
     dispatch(fetchSessions());
-    if (isUser) {
-      dispatch(fetchAcceptedRequests());
-    }
-  }, [dispatch, isUser, user?.role]);
+    fetchAcceptedRequests();
+  }, [dispatch]);
 
-  const handleChange = (event) => {
-    setFormData((current) => ({
-      ...current,
-      [event.target.name]: event.target.value,
-    }));
+  const fetchAcceptedRequests = async () => {
+    try {
+      setRequestLoading(true);
+      setRequestError("");
+
+      const token = localStorage.getItem("token");
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      const [sentResponse, receivedResponse] = await Promise.all([
+        api.get("/api/skill-exchange-requests/sent", {
+          headers,
+        }),
+        api.get("/api/skill-exchange-requests/received", {
+          headers,
+        }),
+      ]);
+
+      const sentAccepted = sentResponse.data.requests.filter(
+        (request) => request.status === "accepted"
+      );
+
+      const receivedAccepted =
+        receivedResponse.data.requests.filter(
+          (request) => request.status === "accepted"
+        );
+
+      const allAccepted = [
+        ...sentAccepted,
+        ...receivedAccepted,
+      ];
+
+      const uniqueRequests = allAccepted.filter(
+        (request, index, array) =>
+          index ===
+          array.findIndex(
+            (item) => item._id === request._id
+          )
+      );
+
+      setAcceptedRequests(uniqueRequests);
+    } catch (error) {
+      setRequestError(
+        error.response?.data?.message ||
+          "Failed to load accepted exchange requests"
+      );
+    } finally {
+      setRequestLoading(false);
+    }
   };
 
-  const handleSchedule = async (event) => {
-    event.preventDefault();
-    setActionError("");
-
-    const result = await dispatch(createSession(formData));
-    if (createSession.fulfilled.match(result)) {
-      setFormData({
-        exchangeRequest: "",
-        date: "",
-        time: "",
-        meetingLink: "",
-      });
-      dispatch(fetchSessions());
-    } else {
-      setActionError(result.payload || "Failed to schedule session");
-    }
+  const handleSchedule = (request) => {
+    setSelectedRequest(request);
+    setEditingSession(null);
+    setDate("");
+    setTime("");
+    setMeetingLink("");
+    setSuccessMessage("");
+    setRequestError("");
   };
 
-  const handleUpdate = async (session) => {
-    setActionError("");
-    const date = window.prompt(
-      "Enter new date (YYYY-MM-DD):",
-      session.date ? new Date(session.date).toISOString().slice(0, 10) : ""
-    );
-    if (!date) return;
+  const handleCancelForm = () => {
+    setSelectedRequest(null);
+    setEditingSession(null);
+    setDate("");
+    setTime("");
+    setMeetingLink("");
+    setSuccessMessage("");
+  };
 
-    const time = window.prompt("Enter new time:", session.time || "");
-    if (!time) return;
+  const handleCreateSession = async (e) => {
+    e.preventDefault();
 
-    const meetingLink = window.prompt(
-      "Enter meeting link:",
-      session.meetingLink || ""
-    );
-    if (meetingLink === null) return;
+    if (!selectedRequest) {
+      return;
+    }
+
+    setSuccessMessage("");
+    setRequestError("");
 
     const result = await dispatch(
-      updateSession({ id: session._id, date, time, meetingLink })
+      createSession({
+        exchangeRequest: selectedRequest._id,
+        date,
+        time,
+        meetingLink,
+      })
     );
-    if (!updateSession.fulfilled.match(result)) {
-      setActionError(result.payload || "Failed to update session");
+
+    if (createSession.fulfilled.match(result)) {
+      setSuccessMessage(
+        "Session scheduled successfully"
+      );
+
+      setSelectedRequest(null);
+      setDate("");
+      setTime("");
+      setMeetingLink("");
+
+      fetchAcceptedRequests();
     }
   };
 
-  const handleSessionAction = async (action, id, confirmation) => {
-    if (!window.confirm(confirmation)) return;
-    setActionError("");
+  const handleEdit = (session) => {
+    setEditingSession(session);
+    setSelectedRequest(null);
 
-    const result = await dispatch(action(id));
-    if (!action.fulfilled.match(result)) {
-      setActionError(result.payload || "Failed to update session");
+    const sessionDate = new Date(session.date);
+
+    const formattedDate = sessionDate
+      .toISOString()
+      .split("T")[0];
+
+    setDate(formattedDate);
+    setTime(session.time);
+    setMeetingLink(session.meetingLink || "");
+
+    setSuccessMessage("");
+    setRequestError("");
+  };
+
+  const handleUpdateSession = async (e) => {
+    e.preventDefault();
+
+    if (!editingSession) {
+      return;
+    }
+
+    setSuccessMessage("");
+    setRequestError("");
+
+    const result = await dispatch(
+      updateSession({
+        id: editingSession._id,
+        date,
+        time,
+        meetingLink,
+      })
+    );
+
+    if (updateSession.fulfilled.match(result)) {
+      setSuccessMessage(
+        "Session updated successfully"
+      );
+
+      setEditingSession(null);
+      setDate("");
+      setTime("");
+      setMeetingLink("");
     }
   };
 
-  const getRequestName = (request) =>
-    request.receiver?.name || "Mentor";
-  const canManageSession = (session) =>
-    isMentor && session.status === "scheduled";
+  const handleCancelSession = async (id) => {
+    setSuccessMessage("");
+    setRequestError("");
+
+    const result = await dispatch(cancelSession(id));
+
+    if (cancelSession.fulfilled.match(result)) {
+      setSuccessMessage(
+        "Session cancelled successfully"
+      );
+    }
+  };
+
+  const handleCompleteSession = async (id) => {
+    setSuccessMessage("");
+    setRequestError("");
+
+    const result = await dispatch(completeSession(id));
+
+    if (completeSession.fulfilled.match(result)) {
+      setSuccessMessage(
+        "Session marked as completed"
+      );
+    }
+  };
+
+  const hasSessionForRequest = (requestId) => {
+    return sessions.some(
+      (session) =>
+        session.exchangeRequest?._id === requestId ||
+        session.exchangeRequest === requestId
+    );
+  };
+
+  const getOtherParticipant = (session) => {
+    if (session.mentor?._id === user?.id) {
+      return session.learner;
+    }
+
+    return session.mentor;
+  };
+
+  if (loading && sessions.length === 0) {
+    return <h2>Loading sessions...</h2>;
+  }
 
   return (
-    <section className="sessions-page">
+    <div className="sessions-page">
       <h1>Sessions</h1>
 
-      {isUser && (
-        <div className="session-schedule">
-          <h2>Schedule a session</h2>
-          {schedulableRequests.length === 0 ? (
-            <p>
-              {acceptedRequests.length === 0
-                ? "No accepted exchange requests are available to schedule."
-                : "All accepted exchanges already have a scheduled session."}
-            </p>
-          ) : (
-            <form onSubmit={handleSchedule}>
-              <label htmlFor="exchangeRequest">Accepted exchange</label>
-              <select
-                id="exchangeRequest"
-                name="exchangeRequest"
-                value={formData.exchangeRequest}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select an accepted exchange</option>
-                {schedulableRequests.map((request) => (
-                  <option key={request._id} value={request._id}>
-                    Exchange with {getRequestName(request)}
-                  </option>
-                ))}
-              </select>
+      <p>
+        Schedule and manage your skill exchange sessions.
+      </p>
 
-              <label htmlFor="sessionDate">Date</label>
-              <input
-                id="sessionDate"
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                required
-              />
+      {error && <p>{error}</p>}
 
-              <label htmlFor="sessionTime">Time</label>
-              <input
-                id="sessionTime"
-                type="time"
-                name="time"
-                value={formData.time}
-                onChange={handleChange}
-                required
-              />
+      {requestError && <p>{requestError}</p>}
 
-              <label htmlFor="meetingLink">Meeting link (optional)</label>
-              <input
-                id="meetingLink"
-                type="url"
-                name="meetingLink"
-                placeholder="https://..."
-                value={formData.meetingLink}
-                onChange={handleChange}
-              />
-
-              <button type="submit" disabled={loading}>
-                Schedule session
-              </button>
-            </form>
-          )}
-        </div>
+      {successMessage && (
+        <p>{successMessage}</p>
       )}
 
-      {isUser && (
-        <section className="sent-exchange-requests">
-          <h2>Requests you sent</h2>
-          {sentRequests.length === 0 ? (
-            <p>You haven’t sent any exchange requests yet.</p>
-          ) : (
-            sentRequests.map((request) => (
-              <article className="request-card" key={request._id}>
+      <div className="sessions-section">
+        <h2>Accepted Exchange Requests</h2>
+
+        {requestLoading ? (
+          <p>Loading accepted requests...</p>
+        ) : acceptedRequests.length === 0 ? (
+          <p>
+            No accepted exchange requests available
+            for scheduling.
+          </p>
+        ) : (
+          acceptedRequests.map((request) => {
+            const alreadyScheduled =
+              hasSessionForRequest(request._id);
+
+            const otherPerson =
+              request.sender?._id === user?.id
+                ? request.receiver
+                : request.sender;
+
+            return (
+              <div
+                className="session-request-card"
+                key={request._id}
+              >
                 <h3>
-                  {request.requestedSkill?.name || "Skill exchange"} with{" "}
-                  {request.receiver?.name || "another user"}
+                  Skill Exchange with{" "}
+                  {otherPerson?.name}
                 </h3>
+
                 <p>
-                  <strong>Status:</strong> {request.status}
+                  Email: {otherPerson?.email}
                 </p>
-                {request.message && (
+
+                <p>
+                  Requested Skill:{" "}
+                  {request.requestedSkill?.name}
+                </p>
+
+                {request.offeredSkill && (
                   <p>
-                    <strong>Message:</strong> {request.message}
+                    Offered Skill:{" "}
+                    {request.offeredSkill?.name}
                   </p>
                 )}
-              </article>
-            ))
+
+                <p>
+                  Request Status: {request.status}
+                </p>
+
+                {!alreadyScheduled ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleSchedule(request)
+                    }
+                  >
+                    Schedule Session
+                  </button>
+                ) : (
+                  <p>Session already scheduled.</p>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {(selectedRequest || editingSession) && (
+        <div className="session-form-section">
+          <h2>
+            {editingSession
+              ? "Update Session"
+              : "Schedule Session"}
+          </h2>
+
+          {selectedRequest && (
+            <p>
+              Exchange with:{" "}
+              <strong>
+                {selectedRequest.sender?._id === user?.id
+                  ? selectedRequest.receiver?.name
+                  : selectedRequest.sender?.name}
+              </strong>
+            </p>
           )}
-        </section>
-      )}
 
-      <h2>{isAdmin || isMentor ? "All sessions" : "My sessions"}</h2>
-      {loading && <p>Loading sessions...</p>}
-      {(actionError || error) && <p role="alert">{actionError || error}</p>}
+          <form
+            onSubmit={
+              editingSession
+                ? handleUpdateSession
+                : handleCreateSession
+            }
+          >
+            <div>
+              <label>Date</label>
 
-      {!loading && sessions.length === 0 ? (
-        <p>No sessions found.</p>
-      ) : (
-        <div className="session-list">
-          {sessions.map((session) => (
-            <article className="session-card" key={session._id}>
-              <h3>
-                {session.mentor?.name || "Mentor"} and{" "}
-                {session.learner?.name || "Learner"}
-              </h3>
-              <p>
-                <strong>Date:</strong>{" "}
-                {session.date
-                  ? new Date(session.date).toLocaleDateString()
-                  : "Not set"}
-              </p>
-              <p>
-                <strong>Time:</strong> {session.time}
-              </p>
-              <p>
-                <strong>Status:</strong> {session.status}
-              </p>
-              {session.meetingLink && (
-                <p>
-                  <strong>Meeting:</strong>{" "}
-                  <a
-                    href={session.meetingLink}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Join meeting
-                  </a>
-                </p>
-              )}
-              {session.exchangeRequest && (
-                <p>
-                  <strong>Exchange request:</strong>{" "}
-                  {session.exchangeRequest._id || session.exchangeRequest}
-                </p>
-              )}
+              <input
+                type="date"
+                value={date}
+                onChange={(e) =>
+                  setDate(e.target.value)
+                }
+                required
+              />
+            </div>
 
-              {canManageSession(session) && (
-                <div className="session-actions">
-                  <button type="button" onClick={() => handleUpdate(session)}>
-                    Update
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleSessionAction(
-                        cancelSession,
-                        session._id,
-                        "Are you sure you want to cancel this session?"
-                      )
-                    }
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleSessionAction(
-                        completeSession,
-                        session._id,
-                        "Mark this session as completed?"
-                      )
-                    }
-                  >
-                    Complete
-                  </button>
-                </div>
-              )}
-            </article>
-          ))}
+            <div>
+              <label>Time</label>
+
+              <input
+                type="time"
+                value={time}
+                onChange={(e) =>
+                  setTime(e.target.value)
+                }
+                required
+              />
+            </div>
+
+            <div>
+              <label>Meeting Link</label>
+
+              <input
+                type="url"
+                placeholder="https://meet.google.com/..."
+                value={meetingLink}
+                onChange={(e) =>
+                  setMeetingLink(e.target.value)
+                }
+              />
+            </div>
+
+            <button type="submit">
+              {editingSession
+                ? "Update Session"
+                : "Schedule Session"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancelForm}
+            >
+              Cancel
+            </button>
+          </form>
         </div>
       )}
-    </section>
+
+      <div className="sessions-section">
+        <h2>My Sessions</h2>
+
+        {sessions.length === 0 ? (
+          <p>No sessions scheduled.</p>
+        ) : (
+          sessions.map((session) => {
+            const otherParticipant =
+              getOtherParticipant(session);
+
+            return (
+              <div
+                className="session-card"
+                key={session._id}
+              >
+                <h3>
+                  Session with{" "}
+                  {otherParticipant?.name}
+                </h3>
+
+                <p>
+                  Email: {otherParticipant?.email}
+                </p>
+
+                <p>
+                  Mentor:{" "}
+                  {session.mentor?.name}
+                </p>
+
+                <p>
+                  Learner:{" "}
+                  {session.learner?.name}
+                </p>
+
+                <p>
+                  Date:{" "}
+                  {new Date(
+                    session.date
+                  ).toLocaleDateString()}
+                </p>
+
+                <p>
+                  Time: {session.time}
+                </p>
+
+                {session.meetingLink && (
+                  <p>
+                    Meeting Link:{" "}
+                    <a
+                      href={session.meetingLink}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Join Meeting
+                    </a>
+                  </p>
+                )}
+
+                <p>
+                  Status: {session.status}
+                </p>
+
+                {session.status === "scheduled" && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleEdit(session)
+                      }
+                    >
+                      Update
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCancelSession(
+                          session._id
+                        )
+                      }
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCompleteSession(
+                          session._id
+                        )
+                      }
+                    >
+                      Mark Complete
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }
 
