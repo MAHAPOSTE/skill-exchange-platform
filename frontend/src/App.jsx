@@ -13,6 +13,7 @@ import Sessions from "./pages/Sessions";
 import Statistics from "./pages/Statistics";
 import MentorRequests from "./pages/MentorRequests";
 import ManageCommunity from "./pages/ManageCommunity";
+import AIAssistant from "./pages/AIAssistant";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -45,6 +46,7 @@ function App() {
           <Route path="/users" element={<Users />} />
           <Route path="/mentor-requests" element={<MentorRequests />} />
           <Route path="/communities/:id/manage" element={<ManageCommunity />} />
+          <Route path="/ai-assistant" element={<AIAssistant />} />
          
           
         </Route>

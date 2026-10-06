@@ -57,10 +57,13 @@ function Layout() {
 
       </div>
 
-      <button className="ai-floating">
-        <span className="ai-logo">✦</span>
-        <span>AI Assistant</span>
-      </button>
+      <Link
+  to="/ai-assistant"
+  className="ai-floating"
+>
+  <span className="ai-logo">✦</span>
+  <span>AI Assistant</span>
+</Link>
 
     </div>
   );
