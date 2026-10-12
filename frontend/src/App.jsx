@@ -14,6 +14,8 @@ import Statistics from "./pages/Statistics";
 import MentorRequests from "./pages/MentorRequests";
 import ManageCommunity from "./pages/ManageCommunity";
 import AIAssistant from "./pages/AIAssistant";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -28,6 +30,13 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />}
+/>
+
+<Route
+  path="/reset-password/:token"
+  element={<ResetPassword />}
+/>
 
         <Route
           element={
