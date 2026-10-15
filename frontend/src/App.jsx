@@ -20,7 +20,6 @@ import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 
-import "./App.css";
 
 function App() {
   return (
