@@ -285,7 +285,7 @@ function Communities() {
 
   if (selectedCommunity) {
     return (
-      <div className="community-details-page">
+      <div className="mx-auto w-full max-w-7xl space-y-7 p-4 sm:p-6 lg:p-8">
         <button
           type="button"
           onClick={() => {
@@ -294,71 +294,70 @@ function Communities() {
             setResourceMessage("");
             setResourceError("");
           }}
+          className="mb-3 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
         >
           Back to Communities
         </button>
 
-        <h1>{selectedCommunity.name}</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{selectedCommunity.name}</h1>
 
-        <p>{selectedCommunity.description}</p>
+        <p className="text-sm leading-6 text-slate-600">{selectedCommunity.description}</p>
 
-        <p>
+        <p className="text-sm leading-6 text-slate-600">
           Mentor:{" "}
           {selectedCommunity.mentor?.name || "Not available"}
         </p>
 
-        <p>
+        <p className="text-sm leading-6 text-slate-600">
           Mentor Email:{" "}
           {selectedCommunity.mentor?.email || "Not available"}
         </p>
 
-        <p>
+        <p className="text-sm leading-6 text-slate-600">
           Members:{" "}
           {selectedCommunity.members?.length || 0}
         </p>
 
-        <p>
+        <p className="text-sm leading-6 text-slate-600">
           Created:{" "}
           {new Date(
             selectedCommunity.createdAt
           ).toLocaleDateString()}
         </p>
 
-        <hr />
+        <hr  className="my-6 border-slate-200" />
 
-        <h2>Community Posts</h2>
-        <p>Posts and announcements will be added here.</p>
+        <h2 className="mt-2 text-xl font-semibold text-slate-900">Community Posts</h2>
+        <p className="text-sm leading-6 text-slate-600">Posts and announcements will be added here.</p>
 
-        <h2>Community Resources</h2>
+        <h2 className="mt-2 text-xl font-semibold text-slate-900">Community Resources</h2>
 
         {user?.role === "user" && (
-          <div className="resource-upload-section">
-            <h3>Upload Learning Resource</h3>
+          <div className="my-5 rounded-2xl border border-violet-100 bg-violet-50/50 p-4 sm:p-5">
+            <h3 className="text-base font-semibold text-slate-900">Upload Learning Resource</h3>
 
-            <form onSubmit={handleUploadResource}>
+            <form onSubmit={handleUploadResource} className="mt-4 space-y-4">
               <input
                 type="text"
                 placeholder="Resource title"
                 value={resourceTitle}
-                onChange={(e) =>
-                  setResourceTitle(e.target.value)
-                }
+                onChange={(e) => setResourceTitle(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                 required
               />
 
               <input
                 id="community-resource-file"
                 type="file"
-                onChange={(e) =>
-                  setResourceFile(e.target.files[0])
-                }
+                onChange={(e) => setResourceFile(e.target.files[0])}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                 required
               />
 
               <button
                 type="submit"
                 disabled={resourceLoading}
-              >
+               className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50">
                 {resourceLoading
                   ? "Uploading..."
                   : "Upload Resource"}
@@ -368,16 +367,16 @@ function Communities() {
         )}
 
         {resourceMessage && (
-          <p>{resourceMessage}</p>
+          <p className="text-sm leading-6 text-slate-600">{resourceMessage}</p>
         )}
 
         {resourceError && (
-          <p>{resourceError}</p>
+          <p className="text-sm leading-6 text-slate-600">{resourceError}</p>
         )}
 
-        <div className="resources-list">
+        <div className="my-5 grid grid-cols-1 gap-4 md:grid-cols-2">
           {resources.length === 0 ? (
-            <p>No resources found.</p>
+            <p className="text-sm leading-6 text-slate-600">No resources found.</p>
           ) : (
             resources.map((resource) => {
               const uploaderId =
@@ -390,12 +389,12 @@ function Communities() {
 
               return (
                 <div
-                  className="resource-card"
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                   key={resource._id}
                 >
-                  <h3>{resource.title}</h3>
+                  <h3 className="text-base font-semibold text-slate-900">{resource.title}</h3>
 
-                  <p>
+                  <p className="text-sm leading-6 text-slate-600">
   Uploaded by:{" "}
   {resource.uploadedBy?.name ||
     (resource.uploadedBy === user?.id
@@ -406,18 +405,15 @@ function Communities() {
                     href={resource.fileUrl}
                     target="_blank"
                     rel="noreferrer"
-                  >
+                   className="inline-flex w-fit items-center rounded-lg bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-100">
                     Open Resource
                   </a>
 
                   {isUploader && (
                     <button
                       type="button"
-                      onClick={() =>
-                        handleDeleteResource(
-                          resource._id
-                        )
-                      }
+                      onClick={() => handleDeleteResource(resource._id)}
+                      className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Delete
                     </button>
@@ -428,17 +424,17 @@ function Communities() {
           )}
         </div>
 
-        <h2>Community Members</h2>
+        <h2 className="mt-2 text-xl font-semibold text-slate-900">Community Members</h2>
 
         {selectedCommunity.members?.length === 0 ? (
-          <p>No members found.</p>
+          <p className="text-sm leading-6 text-slate-600">No members found.</p>
         ) : (
           <div>
             {selectedCommunity.members?.map(
               (member) => (
                 <div key={member._id}>
-                  <p>{member.name}</p>
-                  <p>{member.email}</p>
+                  <p className="text-sm leading-6 text-slate-600">{member.name}</p>
+                  <p className="text-sm leading-6 text-slate-600">{member.email}</p>
                 </div>
               )
             )}
@@ -448,9 +444,8 @@ function Communities() {
         {user?.role === "user" && (
           <button
             type="button"
-            onClick={() =>
-              handleLeave(selectedCommunity._id)
-            }
+            onClick={() => handleLeave(selectedCommunity._id)}
+            className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Leave Community
           </button>
@@ -460,43 +455,41 @@ function Communities() {
   }
 
   return (
-    <div className="communities-page">
-      <h1>Communities</h1>
+    <div className="mx-auto w-full max-w-7xl space-y-7 p-4 sm:p-6 lg:p-8">
+      <h1 className="text-3xl font-bold tracking-tight text-slate-900">Communities</h1>
 
       {user?.role === "mentor" && (
-        <div className="create-community">
-          <h2>Create Community</h2>
+        <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Create Community</h2>
 
-          <form onSubmit={handleCreateCommunity}>
+          <form onSubmit={handleCreateCommunity} className="mt-4 space-y-4">
             <input
               type="text"
               placeholder="Community name"
               value={communityName}
-              onChange={(e) =>
-                setCommunityName(e.target.value)
-              }
+              onChange={(e) => setCommunityName(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
               required
             />
 
             <textarea
               placeholder="Community description"
               value={communityDescription}
-              onChange={(e) =>
-                setCommunityDescription(e.target.value)
-              }
+              onChange={(e) => setCommunityDescription(e.target.value)}
+              className="w-full min-h-28 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
               required
             />
 
-            <button type="submit">
+            <button type="submit" className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50">
               Create Community
             </button>
           </form>
 
-          {createError && <p>{createError}</p>}
+          {createError && <p className="text-sm leading-6 text-slate-600">{createError}</p>}
         </div>
       )}
 
-      <p>
+      <p className="text-sm leading-6 text-slate-600">
         {user?.role === "admin"
           ? "Manage platform communities"
           : user?.role === "mentor"
@@ -504,18 +497,18 @@ function Communities() {
           : "Explore and join communities"}
       </p>
 
-      <div className="community-filters">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_220px]">
         <input
           type="text"
           placeholder="Search communities"
           value={search}
           onChange={handleSearch}
-        />
+         className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
 
         <select
           value={sort}
           onChange={handleSort}
-        >
+         className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100">
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
           <option value="name_asc">Name A-Z</option>
@@ -523,17 +516,17 @@ function Communities() {
         </select>
       </div>
 
-      <p>
+      <p className="text-sm leading-6 text-slate-600">
         Total Communities: {totalCommunities}
       </p>
 
-      {error && <p>{error}</p>}
+      {error && <p className="text-sm leading-6 text-slate-600">{error}</p>}
 
       {!loading && communities.length === 0 && (
-        <p>No communities found.</p>
+        <p className="text-sm leading-6 text-slate-600">No communities found.</p>
       )}
 
-      <div className="communities-list">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
         {communities.map((community) => {
           const isMember = community.members?.some(
             (member) =>
@@ -543,31 +536,31 @@ function Communities() {
 
           return (
             <div
-              className="community-card"
+              className="flex h-full flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               key={community._id}
             >
-              <h2>{community.name}</h2>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">{community.name}</h2>
 
-              <p>{community.description}</p>
+              <p className="text-sm leading-6 text-slate-600">{community.description}</p>
 
-              <p>
+              <p className="text-sm leading-6 text-slate-600">
                 Mentor:{" "}
                 {community.mentor?.name ||
                   "Not available"}
               </p>
 
-              <p>
+              <p className="text-sm leading-6 text-slate-600">
                 Mentor Email:{" "}
                 {community.mentor?.email ||
                   "Not available"}
               </p>
 
-              <p>
+              <p className="text-sm leading-6 text-slate-600">
                 Members:{" "}
                 {community.members?.length || 0}
               </p>
 
-              <p>
+              <p className="text-sm leading-6 text-slate-600">
                 Created:{" "}
                 {new Date(
                   community.createdAt
@@ -580,22 +573,16 @@ function Communities() {
                     <>
                       <button
                         type="button"
-                        onClick={() =>
-                          handleOpenCommunity(
-                            community
-                          )
-                        }
+                        onClick={() => handleOpenCommunity(community)}
+                        className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Open Community
                       </button>
 
                       <button
                         type="button"
-                        onClick={() =>
-                          handleLeave(
-                            community._id
-                          )
-                        }
+                        onClick={() => handleLeave(community._id)}
+                        className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Leave Community
                       </button>
@@ -603,11 +590,8 @@ function Communities() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() =>
-                        handleJoin(
-                          community._id
-                        )
-                      }
+                      onClick={() => handleJoin(community._id)}
+                      className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Join Community
                     </button>
@@ -618,18 +602,15 @@ function Communities() {
               {user?.role === "mentor" && (
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate(
-                      `/communities/${community._id}/manage`
-                    )
-                  }
+                  onClick={() => navigate(`/communities/${community._id}/manage`)}
+                  className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Manage Community
                 </button>
               )}
 
               {user?.role === "admin" && (
-                <button type="button">
+                <button type="button" className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50">
                   View Community
                 </button>
               )}
@@ -639,12 +620,12 @@ function Communities() {
       </div>
 
       {totalPages > 1 && (
-        <div className="pagination">
+        <div className="flex flex-wrap items-center justify-center gap-4 py-5">
           <button
             type="button"
             disabled={page === 1}
             onClick={handlePrevious}
-          >
+           className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50">
             Previous
           </button>
 
@@ -656,7 +637,7 @@ function Communities() {
             type="button"
             disabled={page === totalPages}
             onClick={handleNext}
-          >
+           className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-50">
             Next
           </button>
         </div>
