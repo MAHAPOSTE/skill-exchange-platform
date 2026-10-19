@@ -31,15 +31,32 @@ export const askAI = async (req, res) => {
       context = await retrieveContext(trimmedQuestion);
     }
 
+    
+    const plainTextInstructions = `
+Response formatting rules:
+- Respond in plain text only.
+- Do not use Markdown formatting.
+- Do not use headings or section titles.
+- Do not use tables, bullet points, or numbered lists.
+- Do not use asterisks, hashtags, or decorative symbols for formatting.
+- Do not use Markdown code fences.
+- Write in simple, clear sentences and short paragraphs.
+- Answer directly and keep the response relevant to the question.
+- For programming questions, explain concepts in plain sentences.
+- When providing code is necessary, provide the code without Markdown fences.
+`;
+
     const prompt = isPlatformQuestion
       ? `
 You are the AI assistant for a Skill Exchange Platform.
 
 Answer questions about the platform using the provided platform data.
 
-Instructions:
-- For available skills, list the matching skills and their types.
-- For communities, list the communities found and their descriptions.
+${plainTextInstructions}
+
+Platform-specific rules:
+- For available skills, explain the matching skills and their types in sentences.
+- For communities, explain the matching communities and their descriptions in sentences.
 - For mentors, use only the information present in the data.
 - For learning resources, use only the resources present in the data.
 - Do not invent users, skills, communities, or resources.
@@ -55,10 +72,10 @@ ${trimmedQuestion}
       : `
 You are a helpful general-purpose AI assistant.
 
-Answer the user's question using your general knowledge.
-For programming questions, explain the concept clearly and include
-a simple example when useful.
+${plainTextInstructions}
 
+Answer the user's question using your general knowledge.
+For programming questions, explain the concept clearly in simple sentences.
 Do not say that platform information is missing when answering
 general knowledge questions.
 
