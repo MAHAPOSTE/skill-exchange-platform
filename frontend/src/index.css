@@ -5,69 +5,49 @@
 
 @custom-variant dark (&:is(.dark *));
 :root {
-  --background: oklch(1 0 0);
+  --background: #F3F6FA;
+  --foreground: #142D4E;
 
-  --foreground: oklch(0.145 0 0);
+  --card: #FFFFFF;
+  --card-foreground: #142D4E;
 
-  --card: oklch(1 0 0);
+  --popover: #FFFFFF;
+  --popover-foreground: #142D4E;
 
-  --card-foreground: oklch(0.145 0 0);
+  --primary: #142D4E;
+  --primary-foreground: #FFFFFF;
 
-  --popover: oklch(1 0 0);
+  --secondary: #EAF1FB;
+  --secondary-foreground: #142D4E;
 
-  --popover-foreground: oklch(0.145 0 0);
+  --muted: #EDF1F6;
+  --muted-foreground: #64748B;
 
-  --primary: oklch(0.205 0 0);
+  --accent: #E5EEFF;
+  --accent-foreground: #142D4E;
 
-  --primary-foreground: oklch(0.985 0 0);
+  --destructive: #DC2626;
 
-  --secondary: oklch(0.97 0 0);
+  --border: #DCE4EF;
+  --input: #DCE4EF;
+  --ring: #4F86F7;
 
-  --secondary-foreground: oklch(0.205 0 0);
+  --chart-1: #4F86F7;
+  --chart-2: #16A34A;
+  --chart-3: #8B7CF6;
+  --chart-4: #F2B84B;
+  --chart-5: #142D4E;
 
-  --muted: oklch(0.97 0 0);
+  --radius: 0.75rem;
 
-  --muted-foreground: oklch(0.556 0 0);
-
-  --accent-foreground: oklch(0.205 0 0);
-
-  --destructive: oklch(0.577 0.245 27.325);
-
-  --border: oklch(0.922 0 0);
-
-  --accent: oklch(0.97 0 0);
-
-  --input: oklch(0.922 0 0);
-
-  --ring: oklch(0.708 0 0);
-
-  --chart-1: oklch(0.87 0 0);
-
-  --chart-2: oklch(0.556 0 0);
-
-  --chart-3: oklch(0.439 0 0);
-
-  --chart-4: oklch(0.371 0 0);
-
-  --chart-5: oklch(0.269 0 0);
-
-  --radius: 0.625rem;
-
-  --sidebar: oklch(0.985 0 0);
-
-  --sidebar-foreground: oklch(0.145 0 0);
-
-  --sidebar-primary: oklch(0.205 0 0);
-
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-
-  --sidebar-accent: oklch(0.97 0 0);
-
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-
-  --sidebar-border: oklch(0.922 0 0);
-
-  --sidebar-ring: oklch(0.708 0 0)
+  --sidebar: #142D4E;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #4F86F7;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #233F64;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #294362;
+  --sidebar-ring: #4F86F7;
 }
 
 @theme inline {
@@ -149,11 +129,17 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;}
-  body {
-    @apply bg-background text-foreground;}
+    @apply border-border outline-ring/50;
+  }
+
   html {
     @apply font-sans antialiased;
     -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    min-height: 100vh;
   }
 }
