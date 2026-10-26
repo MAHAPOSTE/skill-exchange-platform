@@ -41,80 +41,106 @@ function Sidebar({ user, open, onClose, onLogout }) {
     .join("")
     .toUpperCase();
 
+  
   return (
     <>
       {/* Mobile overlay */}
       <div
         onClick={onClose}
         aria-hidden="true"
-        className={`fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm transition-opacity lg:hidden ${
+        className={`fixed inset-0 z-40 bg-[#0B1730]/60 backdrop-blur-sm transition-opacity lg:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white transition-transform duration-200 ease-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-[#142D4E] text-white shadow-xl transition-transform duration-200 ease-out lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-label="Sidebar"
       >
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm">
+        {/* Brand */}
+        <div className="flex h-20 shrink-0 items-center justify-between border-b border-white/10 px-5">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-[#4F86F7] text-white shadow-lg shadow-black/15">
               <Repeat className="size-5" />
             </span>
-            <span className="text-lg font-bold tracking-tight text-slate-900">
-              Skill Exchange
-            </span>
+            <div>
+              <p className="text-lg font-bold tracking-tight text-white">
+                Skill Exchange
+              </p>
+              <p className="text-xs text-blue-200">
+                Learn. Share. Grow.
+              </p>
+            </div>
           </div>
+
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
+            className="rounded-lg p-2 text-blue-100 transition hover:bg-white/10 lg:hidden"
             aria-label="Close menu"
           >
             <X className="size-5" />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Menu
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-6">
+          <p className="px-3 pb-3 text-xs font-semibold uppercase tracking-[0.16em] text-blue-200/70">
+            Main Menu
           </p>
+
           {links.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to + label}
               to={to}
               onClick={onClose}
               className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                `group relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-[#4F86F7] text-white shadow-md shadow-black/10"
+                    : "text-blue-100/80 hover:bg-white/10 hover:text-white"
                 }`
               }
             >
               <Icon className="size-5 shrink-0" />
-              {label}
+              <span>{label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="shrink-0 border-t border-slate-100 p-3">
-          <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white">
+        {/* Learning prompt */}
+        <div className="mx-4 mb-4 rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+          <div className="mb-2 flex items-center gap-2 text-[#9DBBFF]">
+            <Sparkles className="size-4" />
+            <span className="text-xs font-semibold uppercase tracking-wide">
+              Keep growing
+            </span>
+          </div>
+          <p className="text-sm leading-5 text-white">
+            Every skill you share creates a new opportunity to learn.
+          </p>
+        </div>
+
+        {/* User profile and logout */}
+        <div className="shrink-0 border-t border-white/10 p-3">
+          <div className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-white/[0.06]">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#29466B] text-sm font-bold text-white">
               {initials}
             </span>
+
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-900">
+              <p className="truncate text-sm font-semibold text-white">
                 {user?.name || "User"}
               </p>
-              <p className="truncate text-xs capitalize text-slate-500">
+              <p className="truncate text-xs capitalize text-blue-200">
                 {user?.role || "learner"}
               </p>
             </div>
+
             <button
               onClick={onLogout}
-              className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-red-600"
+              className="rounded-lg p-2 text-blue-100 transition hover:bg-red-500/20 hover:text-red-300"
               aria-label="Log out"
               title="Log out"
             >
