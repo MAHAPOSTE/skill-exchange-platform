@@ -23,7 +23,12 @@ function AIAssistant() {
     if (!trimmedQuestion || loading) return;
 
     setQuestion("");
-    dispatch(askAI(trimmedQuestion));
+    dispatch(
+  askAI({
+    question: trimmedQuestion,
+    history: messages,
+  })
+);
   };
 
   return (

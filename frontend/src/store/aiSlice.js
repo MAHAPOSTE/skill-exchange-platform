@@ -3,15 +3,16 @@ import api from "../api";
 
 export const askAI = createAsyncThunk(
   "ai/askAI",
-  async (question, { rejectWithValue }) => {
+  async ({ question, history }, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
       const response = await api.post(
         "/api/ai/ask",
         {
-          question,
-        },
+  question,
+  history,
+},
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -52,9 +53,9 @@ const aiSlice = createSlice({
         state.error = "";
 
         state.messages.push({
-          role: "user",
-          content: action.meta.arg,
-        });
+  role: "user",
+  content: action.meta.arg.question,
+});
       })
 
       .addCase(askAI.fulfilled, (state, action) => {

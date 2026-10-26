@@ -3,8 +3,7 @@ import { retrieveContext } from "../services/ragService.js";
 
 export const askAI = async (req, res) => {
   try {
-    const { question } = req.body;
-
+    const { question, history = [] } = req.body;
     if (
       typeof question !== "string" ||
       !question.trim()
@@ -15,6 +14,25 @@ export const askAI = async (req, res) => {
     }
 
     const trimmedQuestion = question.trim();
+    if (!Array.isArray(history)) {
+  return res.status(400).json({
+    message: "History must be an array",
+  });
+}
+
+const validHistory = history
+  .filter(
+    (message) =>
+      ["user", "assistant"].includes(message.role) &&
+      typeof message.content === "string" &&
+      message.content.trim()
+  )
+  .slice(-10)
+  .map(
+    (message) =>
+      `${message.role === "user" ? "User" : "Assistant"}: ${message.content}`
+  )
+  .join("\n");
 
     const platformKeywords =
       /\b(our|my|available|platform|community|communities|skill exchange|mentor|mentors|members|learning resources|resources|who can teach|who teaches|joined|my skills)\b/i;
@@ -46,40 +64,27 @@ Response formatting rules:
 - When providing code is necessary, provide the code without Markdown fences.
 `;
 
-    const prompt = isPlatformQuestion
-      ? `
-You are the AI assistant for a Skill Exchange Platform.
-
-Answer questions about the platform using the provided platform data.
+    const prompt = `
+You are a helpful AI assistant for a Skill Exchange Platform.
 
 ${plainTextInstructions}
 
-Platform-specific rules:
-- For available skills, explain the matching skills and their types in sentences.
-- For communities, explain the matching communities and their descriptions in sentences.
-- For mentors, use only the information present in the data.
-- For learning resources, use only the resources present in the data.
-- Do not invent users, skills, communities, or resources.
-- If relevant information is missing, clearly explain what is unavailable.
-- Do not claim that no records exist unless the provided data confirms this.
+Conversation history:
+${validHistory || "This is the beginning of the conversation."}
+
+Instructions:
+- Use previous questions and answers to understand follow-up questions.
+- Resolve words like "it", "its", "they", and "those" using conversation history.
+- If the user asks for advantages or examples, connect the request to the previous topic.
+- Answer the latest question directly.
+- Do not ask for clarification when the previous messages make the topic clear.
+- For platform-related questions, use only the supplied platform data.
+- Do not invent platform users, skills, communities, or resources.
 
 Platform information:
 ${JSON.stringify(context)}
 
-User question:
-${trimmedQuestion}
-`
-      : `
-You are a helpful general-purpose AI assistant.
-
-${plainTextInstructions}
-
-Answer the user's question using your general knowledge.
-For programming questions, explain the concept clearly in simple sentences.
-Do not say that platform information is missing when answering
-general knowledge questions.
-
-User question:
+Current user question:
 ${trimmedQuestion}
 `;
 
