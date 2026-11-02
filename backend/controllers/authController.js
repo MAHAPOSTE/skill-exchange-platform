@@ -25,7 +25,7 @@ export const register = async (req, res) => {
     }
 
     const passwordRegex =
-      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
@@ -154,7 +154,7 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     const frontendUrl =
-      process.env.FRONTEND_URL || "http://localhost:5173";
+     process.env.FRONTEND_URL || "http://localhost:5173";
 
     const resetLink =
       `${frontendUrl}/reset-password/${resetToken}`;
@@ -209,7 +209,7 @@ export const resetPassword = async (req, res) => {
     }
 
     const passwordRegex =
-      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
     if (!passwordRegex.test(password)) {
       return res.status(400).json({

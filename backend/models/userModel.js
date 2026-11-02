@@ -43,13 +43,13 @@ profileImagePublicId: {
   default: "",
 },
     resetPasswordToken: {
-      type: String,
-      default: null,
-    },
-    
-    resetPasswordExpires: {
-    type: Date,
-    default: null,
+  type: String,
+  default: null,
+},
+
+resetPasswordExpires: {
+  type: Date,
+  default: null,
 },
   },
   {

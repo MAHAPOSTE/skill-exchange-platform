@@ -37,7 +37,7 @@ router.get("/:id", authMiddleware, getUserProfile);
 router.put(
   "/profile/image",
   authMiddleware,
-  uploadProfileImage.single("image"),
+  uploadProfileImage.single("profileImage"),
   uploadProfilePicture
 );
 

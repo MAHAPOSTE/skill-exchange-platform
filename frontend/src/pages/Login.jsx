@@ -47,13 +47,13 @@ function Login() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl md:grid-cols-2">
+    <main className="flex min-h-screen items-center justify-center bg-[#F3F6FA] px-4 py-10">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[#DCE4EF] bg-white shadow-xl md:grid-cols-2">
 
         {/* Left section */}
-        <div className="hidden flex-col justify-between bg-indigo-700 p-10 text-white md:flex">
+        <div className="hidden flex-col justify-between bg-[#142D4E] p-10 text-white md:flex">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-indigo-200">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-white/75">
               Skill Exchange Platform
             </p>
 
@@ -63,7 +63,7 @@ function Login() {
               Share what you know.
             </h1>
 
-            <p className="mt-5 max-w-sm text-base leading-7 text-indigo-100">
+            <p className="mt-5 max-w-sm text-base leading-7 text-white/75">
               Connect with mentors, exchange skills, and
               grow together with a community of learners.
             </p>
@@ -73,7 +73,7 @@ function Login() {
             <p className="text-lg font-semibold">
               Your next learning journey starts here.
             </p>
-            <p className="mt-2 text-sm text-indigo-100">
+            <p className="mt-2 text-sm text-white/75">
               Sign in to continue exploring your skills.
             </p>
           </div>
@@ -83,15 +83,15 @@ function Login() {
         <div className="flex items-center justify-center p-6 sm:p-10 md:p-12">
           <div className="w-full max-w-md">
             <div className="mb-8">
-              <p className="text-sm font-semibold text-indigo-600 md:hidden">
+              <p className="text-sm font-semibold text-[#4F86F7] md:hidden">
                 SKILL EXCHANGE PLATFORM
               </p>
 
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#142D4E]">
                 Welcome back
               </h2>
 
-              <p className="mt-3 text-sm leading-6 text-slate-500">
+              <p className="mt-3 text-sm leading-6 text-[#142D4E]/65">
                 Enter your details to sign in to your account.
               </p>
             </div>
@@ -100,7 +100,7 @@ function Login() {
               <div>
                 <label
                   htmlFor="email"
-                  className="mb-2 block text-sm font-medium text-slate-700"
+                  className="mb-2 block text-sm font-medium text-[#142D4E]"
                 >
                   Email address
                 </label>
@@ -114,7 +114,7 @@ function Login() {
                   onChange={handleChange}
                   autoComplete="email"
                   required
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-[#DCE4EF] bg-white px-4 py-3 text-sm text-[#142D4E] outline-none transition placeholder:text-slate-400 focus:border-[#4F86F7] focus:ring-4 focus:ring-[#4F86F7]/15"
                 />
               </div>
 
@@ -122,14 +122,14 @@ function Login() {
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <label
                     htmlFor="password"
-                    className="block text-sm font-medium text-slate-700"
+                    className="block text-sm font-medium text-[#142D4E]"
                   >
                     Password
                   </label>
 
                   <Link
                     to="/forgot-password"
-                    className="text-sm font-semibold text-indigo-600 transition hover:text-indigo-800"
+                    className="text-sm font-semibold text-[#4F86F7] transition hover:text-[#142D4E]"
                   >
                     Forgot password?
                   </Link>
@@ -144,14 +144,14 @@ function Login() {
                   onChange={handleChange}
                   autoComplete="current-password"
                   required
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-[#DCE4EF] bg-white px-4 py-3 text-sm text-[#142D4E] outline-none transition placeholder:text-slate-400 focus:border-[#4F86F7] focus:ring-4 focus:ring-[#4F86F7]/15"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-xl bg-[#4F86F7] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3B73E6] focus:outline-none focus:ring-4 focus:ring-[#4F86F7]/25 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "Signing in..." : "Sign in"}
               </button>
@@ -161,13 +161,13 @@ function Login() {
               Don't have an account?{" "}
               <Link
                 to="/register"
-                className="font-semibold text-indigo-600 hover:text-indigo-800"
+                className="font-semibold text-[#4F86F7] hover:text-[#142D4E]"
               >
                 Create an account
               </Link>
             </p>
 
-            <p className="mt-10 text-center text-xs text-slate-400">
+            <p className="mt-10 text-center text-xs text-[#142D4E]/45">
               Skill Exchange Platform
             </p>
           </div>
