@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useOutletContext } from "react-router-dom";
 import api from "../api";
+
 import {
   fetchSessions,
   createSession,
@@ -17,24 +19,11 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Badge } from "../components/ui/badge";
-
-function getErrorMessage(result, fallback) {
-  const payload = result?.payload;
-
-  if (typeof payload === "string") {
-    return payload;
-  }
-
-  return (
-    payload?.message ||
-    result?.error?.message ||
-    fallback
-  );
-}
 
 function getLocalDateValue(value) {
   if (!value) return "";
@@ -50,19 +39,8 @@ function getLocalDateValue(value) {
   return `${year}-${month}-${day}`;
 }
 
-function getStatusVariant(status) {
-  switch (status) {
-    case "completed":
-      return "default";
-    case "cancelled":
-    case "rejected":
-      return "destructive";
-    case "scheduled":
-    case "accepted":
-      return "secondary";
-    default:
-      return "outline";
-  }
+function getErrorMessage(result, fallback) {
+  return result?.payload || result?.error?.message || fallback;
 }
 
 function Sessions() {
@@ -77,6 +55,7 @@ function Sessions() {
 
   const userId = String(user?._id || user?.id || "");
   const isAdmin = user?.role === "admin";
+  const isMentor = user?.role === "mentor";
 
   const [acceptedRequests, setAcceptedRequests] = useState([]);
   const [requestLoading, setRequestLoading] = useState(true);
@@ -96,67 +75,64 @@ function Sessions() {
 
   const today = getLocalDateValue(new Date());
 
-  const fetchAcceptedRequests = useCallback(async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setRequestLoading(true);
-      }
-
-      setRequestError("");
-
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        throw new Error("Your session has expired. Please log in again.");
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const [sentResponse, receivedResponse] = await Promise.all([
-        api.get("/api/skill-exchange-requests/sent", { headers }),
-        api.get("/api/skill-exchange-requests/received", { headers }),
-      ]);
-
-      const sentRequests = sentResponse.data.requests || [];
-      const receivedRequests = receivedResponse.data.requests || [];
-
-      const accepted = [
-        ...sentRequests,
-        ...receivedRequests,
-      ].filter((request) => request.status === "accepted");
-
-      const uniqueRequests = [
-        ...new Map(
-          accepted.map((request) => [request._id, request])
-        ).values(),
-      ];
-
-      setAcceptedRequests(uniqueRequests);
-    } catch (err) {
-      setRequestError(
-        err.response?.data?.message ||
-          err.message ||
-          "Failed to load accepted exchange requests."
-      );
-    } finally {
-      if (showLoading) {
-        setRequestLoading(false);
-      }
-    }
-  }, []);
-
+  // Fetch sessions and accepted exchange requests
   useEffect(() => {
     dispatch(fetchSessions());
-    fetchAcceptedRequests();
-  }, [dispatch, fetchAcceptedRequests]);
+
+    const fetchRequests = async () => {
+      if (isAdmin) {
+        setRequestLoading(false);
+        return;
+      }
+
+      try {
+        setRequestLoading(true);
+        setRequestError("");
+
+        const [sentResponse, receivedResponse] = await Promise.all([
+          api.get("/api/skill-exchange-requests/sent"),
+          api.get("/api/skill-exchange-requests/received"),
+        ]);
+
+        const sentRequests = sentResponse.data.requests || [];
+        const receivedRequests = receivedResponse.data.requests || [];
+
+        const allRequests = [
+          ...sentRequests,
+          ...receivedRequests,
+        ];
+
+        const uniqueRequests = allRequests.filter(
+          (request, index) =>
+            allRequests.findIndex(
+              (item) => item._id === request._id
+            ) === index
+        );
+
+        setAcceptedRequests(
+          uniqueRequests.filter(
+            (request) => request.status === "accepted"
+          )
+        );
+      } catch (error) {
+        setRequestError(
+          error.response?.data?.message ||
+            "Failed to load accepted exchange requests."
+        );
+      } finally {
+        setRequestLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, [dispatch, isAdmin]);
 
   const clearMessages = () => {
     setSuccessMessage("");
     setRequestError("");
   };
 
+  // Reset form
   const resetForm = () => {
     setSelectedRequest(null);
     setEditingSession(null);
@@ -165,6 +141,7 @@ function Sessions() {
     setMeetingLink("");
   };
 
+  // Select exchange request for scheduling
   const handleSchedule = (request) => {
     clearMessages();
     setEditingSession(null);
@@ -174,34 +151,28 @@ function Sessions() {
     setMeetingLink("");
   };
 
-  const handleEdit = (session) => {
-    if (isAdmin) return;
-
-    clearMessages();
-    setSelectedRequest(null);
-    setEditingSession(session);
-    setDate(getLocalDateValue(session.date));
-    setTime(session.time || "");
-    setMeetingLink(session.meetingLink || "");
-  };
-
+  // Check whether a scheduled session already exists
   const hasSessionForRequest = (requestId) => {
     return sessions.some((session) => {
       const existingRequestId =
         session.exchangeRequest?._id ||
         session.exchangeRequest;
 
-      return String(existingRequestId || "") === String(requestId);
+      return (
+        String(existingRequestId) === String(requestId) &&
+        session.status === "scheduled"
+      );
     });
   };
 
+  // Find the other participant
   const getOtherParticipant = (session) => {
     const mentorId = String(
-      session.mentor?._id || session.mentor?.id || ""
+      session.mentor?._id || session.mentor?.id || session.mentor || ""
     );
 
     const learnerId = String(
-      session.learner?._id || session.learner?.id || ""
+      session.learner?._id || session.learner?.id || session.learner || ""
     );
 
     if (mentorId === userId) return session.learner;
@@ -210,10 +181,20 @@ function Sessions() {
     return session.mentor || session.learner;
   };
 
+  // Check whether the logged-in mentor owns this session
+  const isAssignedMentor = (session) => {
+    const mentorId = String(
+      session.mentor?._id || session.mentor?.id || session.mentor || ""
+    );
+
+    return isMentor && mentorId === userId;
+  };
+
+  // Create session
   const handleCreateSession = async (event) => {
     event.preventDefault();
 
-    if (!selectedRequest || submitting) return;
+    if (!isMentor || !selectedRequest || submitting) return;
 
     clearMessages();
     setSubmitting(true);
@@ -230,7 +211,7 @@ function Sessions() {
 
       if (!createSession.fulfilled.match(result)) {
         setRequestError(
-          getErrorMessage(result, "Failed to schedule the session.")
+          getErrorMessage(result, "Failed to schedule session.")
         );
         return;
       }
@@ -238,17 +219,29 @@ function Sessions() {
       setSuccessMessage("Session scheduled successfully.");
       resetForm();
 
-      await Promise.all([
-        dispatch(fetchSessions()),
-        fetchAcceptedRequests(false),
-      ]);
+      await dispatch(fetchSessions());
     } catch {
-      setRequestError("An unexpected error occurred while scheduling.");
+      setRequestError("Something went wrong while scheduling.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Edit session
+  const handleEdit = (session) => {
+    if (!isAssignedMentor(session)) return;
+
+    clearMessages();
+
+    setSelectedRequest(null);
+    setEditingSession(session);
+
+    setDate(getLocalDateValue(session.date));
+    setTime(session.time || "");
+    setMeetingLink(session.meetingLink || "");
+  };
+
+  // Update session
   const handleUpdateSession = async (event) => {
     event.preventDefault();
 
@@ -269,42 +262,31 @@ function Sessions() {
 
       if (!updateSession.fulfilled.match(result)) {
         setRequestError(
-          getErrorMessage(result, "Failed to update the session.")
+          getErrorMessage(result, "Failed to update session.")
         );
         return;
       }
 
       setSuccessMessage("Session updated successfully.");
       resetForm();
+
       await dispatch(fetchSessions());
     } catch {
-      setRequestError("An unexpected error occurred while updating.");
+      setRequestError("Something went wrong while updating.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Cancel or complete session
   const handleSessionAction = async (session, action) => {
-    if (isAdmin || processingId || session.status !== "scheduled") {
+    if (
+      !isAssignedMentor(session) ||
+      processingId ||
+      session.status !== "scheduled"
+    ) {
       return;
     }
-
-    const actionConfig = {
-      cancel: {
-        thunk: cancelSession,
-        success: "Session cancelled successfully.",
-        error: "Failed to cancel the session.",
-      },
-      complete: {
-        thunk: completeSession,
-        success: "Session marked as completed.",
-        error: "Failed to complete the session.",
-      },
-    };
-
-    const config = actionConfig[action];
-
-    if (!config) return;
 
     if (
       action === "cancel" &&
@@ -317,17 +299,27 @@ function Sessions() {
     setProcessingId(session._id);
 
     try {
-      const result = await dispatch(config.thunk(session._id));
+      const actionFunction =
+        action === "cancel" ? cancelSession : completeSession;
 
-      if (!config.thunk.fulfilled.match(result)) {
-        setRequestError(getErrorMessage(result, config.error));
+      const result = await dispatch(actionFunction(session._id));
+
+      if (!actionFunction.fulfilled.match(result)) {
+        setRequestError(
+          getErrorMessage(result, `Failed to ${action} session.`)
+        );
         return;
       }
 
-      setSuccessMessage(config.success);
+      setSuccessMessage(
+        action === "cancel"
+          ? "Session cancelled successfully."
+          : "Session marked as completed."
+      );
+
       await dispatch(fetchSessions());
     } catch {
-      setRequestError("An unexpected error occurred. Please try again.");
+      setRequestError("Something went wrong. Please try again.");
     } finally {
       setProcessingId(null);
     }
@@ -335,79 +327,82 @@ function Sessions() {
 
   const isInitialLoading = loading && sessions.length === 0;
 
-  if (isInitialLoading) {
-    return (
-      <div className="flex min-h-48 items-center justify-center">
-        <p className="text-muted-foreground">Loading sessions...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Sessions</h1>
-        <p className="mt-1 text-muted-foreground">
-          Schedule and manage your skill exchange sessions.
+
+      {/* Page Heading */}
+      <div className="rounded-2xl bg-[#142D4E] p-6 text-white shadow-sm sm:p-8">
+        <p className="text-sm font-medium text-blue-200">
+          SKILL EXCHANGE PLATFORM
+        </p>
+
+        <h1 className="mt-2 text-3xl font-bold">
+          Sessions
+        </h1>
+
+        <p className="mt-2 max-w-xl text-sm text-blue-100">
+          Schedule, track, and manage your skill exchange learning sessions.
         </p>
       </div>
 
-      {error && (
+      {/* Messages */}
+      {(error || requestError) && (
         <div
           role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+          className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
         >
-          {typeof error === "string"
-            ? error
-            : error.message || "Failed to load sessions."}
-        </div>
-      )}
-
-      {requestError && (
-        <div
-          role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-        >
-          {requestError}
+          {requestError ||
+            (typeof error === "string" ? error : "Failed to load sessions.")}
         </div>
       )}
 
       {successMessage && (
         <div
           role="status"
-          className="rounded-md border border-green-600/30 bg-green-600/5 p-3 text-sm text-green-700"
+          className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700"
         >
           {successMessage}
         </div>
       )}
 
-      {!isAdmin && (
+      {/* Accepted Exchange Requests */}
+      {isMentor && (
         <section className="space-y-4">
+
           <div>
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-xl font-bold text-[#142D4E]">
               Accepted Exchange Requests
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Choose an accepted request to schedule a session.
+
+            <p className="mt-1 text-sm text-gray-500">
+              Select an accepted exchange request to schedule a session.
             </p>
           </div>
 
           {requestLoading ? (
-            <p className="text-muted-foreground">
-              Loading accepted requests...
-            </p>
-          ) : acceptedRequests.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No accepted exchange requests are available for scheduling.
-                Accept an exchange request first.
+              <CardContent className="p-6 text-center text-gray-500">
+                Loading accepted requests...
+              </CardContent>
+            </Card>
+          ) : acceptedRequests.length === 0 ? (
+            <Card className="border-[#DCE4EF]">
+              <CardContent className="p-8 text-center">
+                <h3 className="font-semibold text-[#142D4E]">
+                  No accepted requests available
+                </h3>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Accept a skill exchange request before scheduling a session.
+                </p>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+
               {acceptedRequests.map((request) => {
                 const senderId = String(
-                  request.sender?._id || request.sender?.id || ""
+                  request.sender?._id || request.sender?.id || request.sender || ""
                 );
 
                 const otherPerson =
@@ -418,48 +413,56 @@ function Sessions() {
                 const alreadyScheduled = hasSessionForRequest(request._id);
 
                 return (
-                  <Card key={request._id}>
+                  <Card
+                    key={request._id}
+                    className="border-[#DCE4EF] shadow-sm transition hover:shadow-md"
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <CardTitle className="text-lg">
-                            Skill exchange with{" "}
-                            {otherPerson?.name || "Unknown user"}
+                          <CardTitle className="text-lg text-[#142D4E]">
+                            {otherPerson?.name || "Exchange participant"}
                           </CardTitle>
-                          <CardDescription className="mt-1">
+
+                          <CardDescription>
                             {otherPerson?.email || "Email unavailable"}
                           </CardDescription>
                         </div>
-                        <Badge variant="secondary">Accepted</Badge>
+
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                          Accepted
+                        </Badge>
                       </div>
                     </CardHeader>
 
                     <CardContent className="space-y-3">
-                      <p>
-                        <span className="text-muted-foreground">
-                          Requested skill:{" "}
-                        </span>
-                        {request.requestedSkill?.name || "Unavailable"}
+
+                      <p className="text-sm text-gray-600">
+                        <span className="font-semibold text-[#142D4E]">
+                          Requested skill:
+                        </span>{" "}
+                        {request.requestedSkill?.name || "Not available"}
                       </p>
 
                       {request.offeredSkill && (
-                        <p>
-                          <span className="text-muted-foreground">
-                            Offered skill:{" "}
-                          </span>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-semibold text-[#142D4E]">
+                            Offered skill:
+                          </span>{" "}
                           {request.offeredSkill.name}
                         </p>
                       )}
 
                       {alreadyScheduled ? (
-                        <p className="text-sm text-muted-foreground">
-                          A session has already been scheduled for this request.
+                        <p className="text-sm text-gray-500">
+                          A scheduled session already exists for this request.
                         </p>
                       ) : (
                         <Button
                           type="button"
                           onClick={() => handleSchedule(request)}
                           disabled={submitting || processingId !== null}
+                          className="bg-[#4F86F7] text-white hover:bg-[#3B73E6]"
                         >
                           Schedule Session
                         </Button>
@@ -468,44 +471,29 @@ function Sessions() {
                   </Card>
                 );
               })}
+
             </div>
           )}
         </section>
       )}
 
-      {(selectedRequest || editingSession) && !isAdmin && (
-        <Card>
+      {/* Schedule / Edit Form */}
+      {isMentor && (selectedRequest || editingSession) && (
+        <Card className="border-[#DCE4EF] shadow-sm">
+
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-xl text-[#142D4E]">
               {editingSession ? "Update Session" : "Schedule Session"}
             </CardTitle>
+
             <CardDescription>
               {editingSession
-                ? "Update the date, time, or meeting link."
-                : "Enter the details for your skill exchange session."}
+                ? "Change the session date, time, or meeting link."
+                : "Enter the details for your learning session."}
             </CardDescription>
           </CardHeader>
 
           <CardContent>
-            {selectedRequest && (
-              <p className="mb-5 text-sm text-muted-foreground">
-                Exchange with:{" "}
-                <span className="font-medium text-foreground">
-                  {(() => {
-                    const senderId = String(
-                      selectedRequest.sender?._id ||
-                        selectedRequest.sender?.id ||
-                        ""
-                    );
-
-                    return senderId === userId
-                      ? selectedRequest.receiver?.name
-                      : selectedRequest.sender?.name;
-                  })()}
-                </span>
-              </p>
-            )}
-
             <form
               onSubmit={
                 editingSession
@@ -514,8 +502,10 @@ function Sessions() {
               }
               className="grid grid-cols-1 gap-5 sm:grid-cols-2"
             >
+
               <div className="space-y-2">
-                <Label htmlFor="session-date">Date</Label>
+                <Label htmlFor="session-date">Session Date</Label>
+
                 <Input
                   id="session-date"
                   type="date"
@@ -527,7 +517,8 @@ function Sessions() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="session-time">Time</Label>
+                <Label htmlFor="session-time">Session Time</Label>
+
                 <Input
                   id="session-time"
                   type="time"
@@ -541,6 +532,7 @@ function Sessions() {
                 <Label htmlFor="meeting-link">
                   Meeting Link (optional)
                 </Label>
+
                 <Input
                   id="meeting-link"
                   type="url"
@@ -551,7 +543,11 @@ function Sessions() {
               </div>
 
               <div className="flex flex-wrap gap-3 sm:col-span-2">
-                <Button type="submit" disabled={submitting}>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="bg-[#4F86F7] text-white hover:bg-[#3B73E6]"
+                >
                   {submitting
                     ? "Saving..."
                     : editingSession
@@ -568,93 +564,161 @@ function Sessions() {
                   Close
                 </Button>
               </div>
+
             </form>
           </CardContent>
         </Card>
       )}
 
+      {/* Session Records */}
       <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold">
-            {isAdmin ? "All Available Session Records" : "My Sessions"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {isAdmin
-              ? "View session details. Management actions are disabled for administrators."
-              : "View and manage your scheduled sessions."}
-          </p>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-[#142D4E]">
+              {isAdmin ? "All Session Records" : "My Sessions"}
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              {isAdmin
+                ? "View all sessions across the platform."
+                : "View your scheduled, completed, and cancelled sessions."}
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={() => dispatch(fetchSessions())}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </Button>
         </div>
 
-        {sessions.length === 0 ? (
+        {isInitialLoading ? (
           <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              No sessions scheduled yet.
+            <CardContent className="p-8 text-center text-gray-500">
+              Loading sessions...
+            </CardContent>
+          </Card>
+        ) : sessions.length === 0 ? (
+          <Card className="border-[#DCE4EF]">
+            <CardContent className="p-10 text-center">
+              <h3 className="font-semibold text-[#142D4E]">
+                No sessions found
+              </h3>
+
+              <p className="mt-2 text-sm text-gray-500">
+                Your scheduled sessions will appear here.
+              </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+
             {sessions.map((session) => {
               const otherParticipant = getOtherParticipant(session);
+              const assignedMentor = isAssignedMentor(session);
               const isProcessing = processingId === session._id;
 
               return (
-                <Card key={session._id}>
-                  <CardHeader>
+                <Card
+                  key={session._id}
+                  className="overflow-hidden border-[#DCE4EF] shadow-sm transition hover:shadow-md"
+                >
+
+                  <CardHeader className="bg-[#F3F6FA]">
                     <div className="flex flex-wrap items-start justify-between gap-3">
+
                       <div>
-                        <CardTitle className="text-lg">
-                          Session with{" "}
-                          {otherParticipant?.name || "Unknown participant"}
+                        <CardTitle className="text-lg text-[#142D4E]">
+                          Session with {otherParticipant?.name || "Participant"}
                         </CardTitle>
+
                         <CardDescription className="mt-1">
                           {otherParticipant?.email || "Email unavailable"}
                         </CardDescription>
                       </div>
 
-                      <Badge variant={getStatusVariant(session.status)}>
-                        {session.status || "Unknown"}
+                      <Badge
+                        className={
+                          session.status === "scheduled"
+                            ? "bg-blue-100 text-blue-700 hover:bg-blue-100"
+                            : session.status === "completed"
+                              ? "bg-green-100 text-green-700 hover:bg-green-100"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-200"
+                        }
+                      >
+                        {session.status}
                       </Badge>
+
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-3">
-                    <p>
-                      <span className="text-muted-foreground">Mentor: </span>
-                      {session.mentor?.name || "Unavailable"}
-                    </p>
+                  <CardContent className="space-y-4 p-5">
 
-                    <p>
-                      <span className="text-muted-foreground">Learner: </span>
-                      {session.learner?.name || "Unavailable"}
-                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 
-                    <p>
-                      <span className="text-muted-foreground">Date: </span>
-                      {session.date
-                        ? new Date(session.date).toLocaleDateString()
-                        : "Not set"}
-                    </p>
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-gray-400">
+                          Mentor
+                        </p>
 
-                    <p>
-                      <span className="text-muted-foreground">Time: </span>
-                      {session.time || "Not set"}
-                    </p>
+                        <p className="mt-1 font-medium text-[#142D4E]">
+                          {session.mentor?.name || "Unavailable"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-gray-400">
+                          Learner
+                        </p>
+
+                        <p className="mt-1 font-medium text-[#142D4E]">
+                          {session.learner?.name || "Unavailable"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-gray-400">
+                          Date
+                        </p>
+
+                        <p className="mt-1 text-sm text-gray-700">
+                          {session.date
+                            ? new Date(session.date).toLocaleDateString()
+                            : "Not set"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-gray-400">
+                          Time
+                        </p>
+
+                        <p className="mt-1 text-sm text-gray-700">
+                          {session.time || "Not set"}
+                        </p>
+                      </div>
+
+                    </div>
 
                     {session.meetingLink && (
-                      <p>
-                        <a
-                          href={session.meetingLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary underline underline-offset-4"
-                        >
-                          Join Meeting
-                        </a>
-                      </p>
+                      <a
+                        href={session.meetingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block text-sm font-semibold text-[#4F86F7] underline underline-offset-4 hover:text-[#3B73E6]"
+                      >
+                        Join Meeting
+                      </a>
                     )}
 
-                    {!isAdmin && session.status === "scheduled" && (
-                      <div className="flex flex-wrap gap-2 pt-2">
+                    {/* Only the assigned mentor can manage a session */}
+                    {assignedMentor && session.status === "scheduled" && (
+                      <div className="flex flex-wrap gap-2 border-t border-[#DCE4EF] pt-4">
+
                         <Button
                           type="button"
                           variant="outline"
@@ -681,15 +745,25 @@ function Sessions() {
                           onClick={() =>
                             handleSessionAction(session, "complete")
                           }
+                          className="bg-[#16A34A] text-white hover:bg-green-700"
                         >
                           {isProcessing ? "Processing..." : "Mark Complete"}
                         </Button>
+
                       </div>
                     )}
+
+                    {!isAdmin && !assignedMentor && session.status === "scheduled" && (
+                      <p className="border-t border-[#DCE4EF] pt-3 text-xs text-gray-500">
+                        Only the assigned mentor can manage this session.
+                      </p>
+                    )}
+
                   </CardContent>
                 </Card>
               );
             })}
+
           </div>
         )}
       </section>
