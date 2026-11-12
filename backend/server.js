@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import connectDB from "./config/db.js";
+import { createServer } from "node:http";
+import initializeSocket from "./config/socket.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -14,6 +16,9 @@ import aiRoutes from "./routes/aiRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 const app = express();
+
+const httpServer = createServer(app);
+initializeSocket(httpServer);
 
 app.use(cors());
 app.use(express.json());
@@ -34,6 +39,6 @@ app.use("/api/sessions", sessionRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
