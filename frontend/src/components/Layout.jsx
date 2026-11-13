@@ -4,6 +4,7 @@ import { Menu, Sparkles } from "lucide-react";
 import api from "../api";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
+import { connectSocket, disconnectSocket } from "../socket";
 
 function Layout() {
   const [user, setUser] = useState(null);
@@ -13,24 +14,30 @@ function Layout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const token = localStorage.getItem("token");
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-        const response = await api.get("/api/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setUser(response.data.profile);
-      } catch (error) {
-        console.error("Failed to load user profile:", error);
-      } finally {
-        setLoadingUser(false);
+      if (!token) {
+        return;
       }
-    };
+      const response = await api.get("/api/users/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    fetchProfile();
-  }, []);
+      setUser(response.data.profile);
+
+      connectSocket(token);
+
+    } catch (error) {
+      console.error("Failed to load user profile:", error);
+    } finally {
+      setLoadingUser(false);
+    }
+  };
+
+  fetchProfile();
+}, []);
 
   // Close the mobile drawer on route change and on Escape
   useEffect(() => {
@@ -44,9 +51,11 @@ function Layout() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login", { replace: true });
-  };
+  disconnectSocket();
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  navigate("/login", { replace: true });
+};
 
   if (loadingUser) {
     return (
