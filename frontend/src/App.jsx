@@ -16,6 +16,7 @@ import ManageCommunity from "./pages/ManageCommunity";
 import AIAssistant from "./pages/AIAssistant";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Chat from "./pages/Chat";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -55,6 +56,7 @@ function App() {
           <Route path="/mentor-requests" element={<MentorRequests />} />
           <Route path="/communities/:id/manage" element={<ManageCommunity />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
+          <Route path="/chat" element={<Chat />} />
          
           
         </Route>

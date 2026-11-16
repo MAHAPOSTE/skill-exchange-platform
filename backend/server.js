@@ -14,11 +14,13 @@ import skillExchangeRequestRoutes from "./routes/skillExchangeRequestRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 
 const app = express();
 
 const httpServer = createServer(app);
-initializeSocket(httpServer);
+const io = initializeSocket(httpServer);
+app.set("io", io);
 
 app.use(cors());
 app.use(express.json());
@@ -38,6 +40,7 @@ app.use("/api/skill-exchange-requests", skillExchangeRequestRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/messages", messageRoutes);
 
 httpServer.listen(port, () => {
   console.log(`Server running on port ${port}`);

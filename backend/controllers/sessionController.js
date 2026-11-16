@@ -1,26 +1,72 @@
+import mongoose from "mongoose";
 import Session from "../models/sessionModel.js";
 import SkillExchangeRequest from "../models/skillExchangeRequestModel.js";
 
-const isSessionOwnerForRole = (session, user) => {
-  if (user.role === "mentor") {
-    return session.mentor.toString() === user.id;
+const isSessionParticipant = (session, userId) => {
+  const mentorId = session.mentor?._id || session.mentor;
+  const learnerId = session.learner?._id || session.learner;
+
+  return (
+    String(mentorId) === String(userId) ||
+    String(learnerId) === String(userId)
+  );
+};
+
+const isAssignedMentor = (session, userId) => {
+  const mentorId = session.mentor?._id || session.mentor;
+  return String(mentorId) === String(userId);
+};
+
+const populateSession = (query) =>
+  query
+    .populate("mentor", "name email role")
+    .populate("learner", "name email role")
+    .populate("exchangeRequest");
+
+const validateSessionDetails = (date, time, meetingLink) => {
+  if (date !== undefined) {
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "Please provide a valid session date";
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    parsedDate.setHours(0, 0, 0, 0);
+
+    if (parsedDate < today) {
+      return "Session date cannot be in the past";
+    }
   }
 
-  if (user.role === "user") {
-    return session.learner.toString() === user.id;
+  if (time !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    return "Please provide a valid session time";
   }
 
-  return false;
+  if (meetingLink !== undefined && meetingLink.trim()) {
+    try {
+      const url = new URL(meetingLink);
+
+      if (!["http:", "https:"].includes(url.protocol)) {
+        return "Meeting link must use HTTP or HTTPS";
+      }
+    } catch {
+      return "Please provide a valid meeting link";
+    }
+  }
+
+  return null;
 };
 
 // Create Session
 export const createSession = async (req, res) => {
   try {
-    const { exchangeRequest, date, time, meetingLink } = req.body;
+    const { exchangeRequest, date, time, meetingLink = "" } = req.body;
 
-    if (req.user.role !== "user") {
+    if (!["user", "mentor"].includes(req.user.role)) {
       return res.status(403).json({
-        message: "Only users can schedule sessions",
+        message: "Only users and mentors can schedule sessions",
       });
     }
 
@@ -30,7 +76,24 @@ export const createSession = async (req, res) => {
       });
     }
 
-    // Find exchange request
+    if (!mongoose.Types.ObjectId.isValid(exchangeRequest)) {
+      return res.status(400).json({
+        message: "Invalid exchange request ID",
+      });
+    }
+
+    const validationError = validateSessionDetails(
+      date,
+      time,
+      meetingLink
+    );
+
+    if (validationError) {
+      return res.status(400).json({
+        message: validationError,
+      });
+    }
+
     const request = await SkillExchangeRequest.findById(exchangeRequest);
 
     if (!request) {
@@ -39,54 +102,53 @@ export const createSession = async (req, res) => {
       });
     }
 
-    // Session can be created only for accepted request
     if (request.status !== "accepted") {
       return res.status(400).json({
-        message: "Session can only be created for an accepted exchange request",
+        message: "A session can only be created for an accepted exchange request",
       });
     }
 
-    // Either participant can schedule after the request is accepted.
     const isParticipant =
-      request.sender.toString() === req.user.id ||
-      request.receiver.toString() === req.user.id;
+      String(request.sender) === String(req.user.id) ||
+      String(request.receiver) === String(req.user.id);
 
     if (!isParticipant) {
       return res.status(403).json({
-        message: "Only participants of the exchange can schedule a session",
+        message: "Only exchange participants can schedule a session",
       });
     }
 
-    // Prevent duplicate active session
     const existingSession = await Session.findOne({
       exchangeRequest,
       status: "scheduled",
     });
 
     if (existingSession) {
-      return res.status(400).json({
-        message: "A session is already scheduled for this exchange",
+      return res.status(409).json({
+        message: "A scheduled session already exists for this exchange",
       });
     }
 
-    // In our exchange flow:
-    // Receiver = person whose skill is requested
-    // Sender = person requesting the skill
+    // Receiver is the mentor and sender is the learner in this workflow.
     const session = await Session.create({
       exchangeRequest,
       mentor: request.receiver,
       learner: request.sender,
       date,
       time,
-      meetingLink: meetingLink || "",
+      meetingLink: meetingLink.trim(),
     });
 
-    res.status(201).json({
+    const populatedSession = await populateSession(
+      Session.findById(session._id)
+    );
+
+    return res.status(201).json({
       message: "Session scheduled successfully",
-      session,
+      session: populatedSession,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to schedule session",
       error: error.message,
     });
@@ -97,24 +159,25 @@ export const createSession = async (req, res) => {
 export const getMySessions = async (req, res) => {
   try {
     const filter =
-      req.user.role === "admin" || req.user.role === "mentor"
+      req.user.role === "admin"
         ? {}
         : {
-            $or: [{ mentor: req.user.id }, { learner: req.user.id }],
+            $or: [
+              { mentor: req.user.id },
+              { learner: req.user.id },
+            ],
           };
 
-    const sessions = await Session.find(filter)
-      .populate("mentor", "name email role")
-      .populate("learner", "name email role")
-      .populate("exchangeRequest")
-      .sort({ date: 1 });
+    const sessions = await populateSession(
+      Session.find(filter).sort({ date: 1, time: 1 })
+    );
 
-    res.status(200).json({
+    return res.status(200).json({
       count: sessions.length,
       sessions,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to fetch sessions",
       error: error.message,
     });
@@ -126,10 +189,13 @@ export const getSessionById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const session = await Session.findById(id)
-      .populate("mentor", "name email role")
-      .populate("learner", "name email role")
-      .populate("exchangeRequest");
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid session ID",
+      });
+    }
+
+    const session = await populateSession(Session.findById(id));
 
     if (!session) {
       return res.status(404).json({
@@ -139,26 +205,19 @@ export const getSessionById = async (req, res) => {
 
     if (
       req.user.role !== "admin" &&
-      req.user.role !== "mentor" &&
-      !isSessionOwnerForRole(
-        {
-          mentor: session.mentor._id,
-          learner: session.learner._id,
-        },
-        req.user
-      )
+      !isSessionParticipant(session, req.user.id)
     ) {
       return res.status(403).json({
         message: "You are not allowed to view this session",
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Session fetched successfully",
       session,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to fetch session",
       error: error.message,
     });
@@ -171,6 +230,12 @@ export const updateSession = async (req, res) => {
     const { id } = req.params;
     const { date, time, meetingLink } = req.body;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid session ID",
+      });
+    }
+
     const session = await Session.findById(id);
 
     if (!session) {
@@ -179,39 +244,61 @@ export const updateSession = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "mentor") {
+    if (
+      req.user.role !== "mentor" ||
+      !isAssignedMentor(session, req.user.id)
+    ) {
       return res.status(403).json({
-        message: "Only mentors can update sessions",
+        message: "Only the assigned mentor can update this session",
       });
     }
 
-    // Only scheduled sessions can be changed.
     if (session.status !== "scheduled") {
       return res.status(400).json({
-        message: `Session is already ${session.status}`,
+        message: `A ${session.status} session cannot be updated`,
       });
     }
 
-    if (date !== undefined) {
-      session.date = date;
+    if (
+      date === undefined &&
+      time === undefined &&
+      meetingLink === undefined
+    ) {
+      return res.status(400).json({
+        message: "Provide at least one field to update",
+      });
     }
 
-    if (time !== undefined) {
-      session.time = time;
+    const validationError = validateSessionDetails(
+      date,
+      time,
+      meetingLink
+    );
+
+    if (validationError) {
+      return res.status(400).json({
+        message: validationError,
+      });
     }
 
+    if (date !== undefined) session.date = date;
+    if (time !== undefined) session.time = time;
     if (meetingLink !== undefined) {
-      session.meetingLink = meetingLink;
+      session.meetingLink = meetingLink.trim();
     }
 
     await session.save();
 
-    res.status(200).json({
+    const populatedSession = await populateSession(
+      Session.findById(session._id)
+    );
+
+    return res.status(200).json({
       message: "Session updated successfully",
-      session,
+      session: populatedSession,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to update session",
       error: error.message,
     });
@@ -223,6 +310,12 @@ export const cancelSession = async (req, res) => {
   try {
     const { id } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid session ID",
+      });
+    }
+
     const session = await Session.findById(id);
 
     if (!session) {
@@ -231,38 +324,50 @@ export const cancelSession = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "mentor") {
+    if (
+      req.user.role !== "mentor" ||
+      !isAssignedMentor(session, req.user.id)
+    ) {
       return res.status(403).json({
-        message: "Only mentors can cancel sessions",
+        message: "Only the assigned mentor can cancel this session",
       });
     }
 
     if (session.status !== "scheduled") {
       return res.status(400).json({
-        message: `Session is already ${session.status}`,
+        message: `A ${session.status} session cannot be cancelled`,
       });
     }
 
     session.status = "cancelled";
-
     await session.save();
 
-    res.status(200).json({
+    const populatedSession = await populateSession(
+      Session.findById(session._id)
+    );
+
+    return res.status(200).json({
       message: "Session cancelled successfully",
-      session,
+      session: populatedSession,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to cancel session",
       error: error.message,
     });
   }
 };
 
-// Mark Session as Completed
+// Complete Session
 export const completeSession = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid session ID",
+      });
+    }
 
     const session = await Session.findById(id);
 
@@ -272,28 +377,34 @@ export const completeSession = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "mentor") {
+    if (
+      req.user.role !== "mentor" ||
+      !isAssignedMentor(session, req.user.id)
+    ) {
       return res.status(403).json({
-        message: "Only mentors can complete sessions",
+        message: "Only the assigned mentor can complete this session",
       });
     }
 
     if (session.status !== "scheduled") {
       return res.status(400).json({
-        message: `Session is already ${session.status}`,
+        message: `A ${session.status} session cannot be completed`,
       });
     }
 
     session.status = "completed";
-
     await session.save();
 
-    res.status(200).json({
+    const populatedSession = await populateSession(
+      Session.findById(session._id)
+    );
+
+    return res.status(200).json({
       message: "Session marked as completed",
-      session,
+      session: populatedSession,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to complete session",
       error: error.message,
     });

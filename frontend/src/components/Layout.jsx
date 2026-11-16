@@ -13,7 +13,8 @@ function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => {
+  
+useEffect(() => {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -21,14 +22,13 @@ function Layout() {
       if (!token) {
         return;
       }
+
       const response = await api.get("/api/users/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       setUser(response.data.profile);
-
       connectSocket(token);
-
     } catch (error) {
       console.error("Failed to load user profile:", error);
     } finally {
@@ -37,6 +37,10 @@ function Layout() {
   };
 
   fetchProfile();
+
+  return () => {
+    disconnectSocket();
+  };
 }, []);
 
   // Close the mobile drawer on route change and on Escape

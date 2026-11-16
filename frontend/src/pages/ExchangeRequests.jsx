@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import {
   Card,
@@ -11,6 +12,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 
 function ExchangeRequests() {
+  const navigate = useNavigate();
   const [receivedRequests, setReceivedRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,6 +167,15 @@ function ExchangeRequests() {
               </p>
             </div>
           )}
+
+          {request.status === "accepted" && (
+  <Button
+    type="button"
+    onClick={() => navigate(`/chat?userId=${person._id}`)}
+  >
+    Chat with {person?.name || "User"}
+  </Button>
+)}
 
           {type === "received" && request.status === "pending" && (
             <div className="flex flex-wrap gap-2 pt-2">
