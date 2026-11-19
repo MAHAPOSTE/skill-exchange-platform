@@ -85,11 +85,13 @@ export const sendExchangeRequest = async (req, res) => {
 };
 
 // Get My Sent Requests
+
 export const getSentRequests = async (req, res) => {
   try {
     const requests = await SkillExchangeRequest.find({
       sender: req.user.id,
     })
+      .populate("sender", "name email role")
       .populate("receiver", "name email role")
       .populate("offeredSkill", "name type")
       .populate("requestedSkill", "name type")
@@ -108,12 +110,14 @@ export const getSentRequests = async (req, res) => {
 };
 
 // Get My Received Requests
+
 export const getReceivedRequests = async (req, res) => {
   try {
     const requests = await SkillExchangeRequest.find({
       receiver: req.user.id,
     })
       .populate("sender", "name email role")
+      .populate("receiver", "name email role")
       .populate("offeredSkill", "name type")
       .populate("requestedSkill", "name type")
       .sort({ createdAt: -1 });

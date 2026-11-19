@@ -39,13 +39,18 @@ function Chat() {
         );
 
         const chatContacts = acceptedRequests.map((request) => {
-          const person =
-            String(request.sender._id) === String(user.id)
-              ? request.receiver
-              : request.sender;
+        const senderId = request.sender?._id || request.sender;
+        const receiverId = request.receiver?._id || request.receiver;
 
-          return person;
-        });
+        const person =
+        String(senderId) === String(user.id)
+         ? request.receiver
+         : request.sender;
+
+         return person;
+       });
+        console.log("Accepted requests:", acceptedRequests);
+        console.log("Chat contacts:", chatContacts);
 
         const uniqueContacts = chatContacts.filter(
           (person, index, array) =>
@@ -107,33 +112,34 @@ function Chat() {
   }, [selectedUser]);
 
   // Receive messages in real time
-  useEffect(() => {
-    const handleNewMessage = (message) => {
-      if (
-        selectedUser &&
-        String(message.sender._id) === String(selectedUser.id)
-      ) {
-        setMessages((previousMessages) => [
-          ...previousMessages,
-          message,
-        ]);
+  // Receive messages in real time
+useEffect(() => {
+  const handleNewMessage = (message) => {
+    if (
+      selectedUser &&
+      String(message.sender?._id) === String(selectedUser._id)
+    ) {
+      setMessages((previousMessages) => [
+        ...previousMessages,
+        message,
+      ]);
 
-        api.put(
-          `/api/messages/${selectedUser._id}/read`,
-          {},
-          { headers }
-        ).catch((error) => {
-          console.error("Failed to mark message as read:", error);
-        });
-      }
-    };
+      api.put(
+        `/api/messages/${selectedUser._id}/read`,
+        {},
+        { headers }
+      ).catch((error) => {
+        console.error("Failed to mark message as read:", error);
+      });
+    }
+  };
 
-    socket.on("newMessage", handleNewMessage);
+  socket.on("newMessage", handleNewMessage);
 
-    return () => {
-      socket.off("newMessage", handleNewMessage);
-    };
-  }, [selectedUser]);
+  return () => {
+    socket.off("newMessage", handleNewMessage);
+  };
+}, [selectedUser]);
 
   // Send a message
   const handleSendMessage = async (e) => {
@@ -249,18 +255,29 @@ function Chat() {
                     No messages yet. Start the conversation!
                   </p>
                 ) : (
-                  messages.map((message) => (
-                    <div
-                      key={message._id}
-                      className={`max-w-[80%] rounded-xl p-3 text-sm ${
-                        String(message.sender._id) === String(user._id)
-                          ? "ml-auto bg-[#4F86F7] text-white"
-                          : "mr-auto bg-[#F3F6FA] text-[#142D4E]"
-                      }`}
-                    >
-                      {message.message}
-                    </div>
-                  ))
+                  messages.map((message) => {
+  const isMyMessage =
+    String(message.sender?._id) === String(user.id);
+
+  return (
+    <div
+      key={message._id}
+      className={`flex mb-3 ${
+        isMyMessage ? "justify-end" : "justify-start"
+      }`}
+    >
+      <div
+        className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${
+          isMyMessage
+            ? "bg-[#4F86F7] text-white"
+            : "bg-[#F3F6FA] text-[#142D4E]"
+        }`}
+      >
+        {message.message}
+      </div>
+    </div>
+  );
+})
                 )}
               </div>
 
