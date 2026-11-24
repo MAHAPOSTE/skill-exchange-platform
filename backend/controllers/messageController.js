@@ -92,6 +92,7 @@ export const getMessages = async (req, res) => {
         { sender: userId, receiver: receiverId },
         { sender: receiverId, receiver: userId },
       ],
+      hiddenFor: { $ne: userId },
     })
       .populate("sender", "name profileImage")
       .populate("receiver", "name profileImage")
@@ -140,6 +141,99 @@ export const markMessagesRead = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: "Failed to mark messages as read",
+      error: error.message,
+    });
+  }
+};
+
+// Clear chat for the logged-in user
+export const clearChat = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const receiverId = req.params.userId;
+
+    const acceptedRequest = await checkChatAccess(
+      userId,
+      receiverId
+    );
+
+    if (!acceptedRequest) {
+      return res.status(403).json({
+        message: "You are not allowed to access this chat",
+      });
+    }
+
+    await Message.updateMany(
+      {
+        $or: [
+          { sender: userId, receiver: receiverId },
+          { sender: receiverId, receiver: userId },
+        ],
+        hiddenFor: { $ne: userId },
+      },
+      {
+        $addToSet: { hiddenFor: userId },
+      }
+    );
+
+    return res.status(200).json({
+      message: "Chat cleared successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to clear chat",
+      error: error.message,
+    });
+  }
+};
+
+// Delete message for everyone
+export const deleteMessageForEveryone = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+
+    const message = await Message.findById(messageId);
+
+    if (!message) {
+      return res.status(404).json({
+        message: "Message not found",
+      });
+    }
+
+    if (String(message.sender) !== String(userId)) {
+      return res.status(403).json({
+        message: "Only the sender can delete this message for everyone",
+      });
+    }
+
+    if (message.isDeletedForEveryone) {
+      return res.status(400).json({
+        message: "Message is already deleted",
+      });
+    }
+
+    message.isDeletedForEveryone = true;
+    message.message = "This message was deleted";
+
+    await message.save();
+
+    const io = req.app.get("io");
+
+io.to(String(message.sender)).emit("messageDeleted", {
+  messageId: String(message._id),
+});
+
+io.to(String(message.receiver)).emit("messageDeleted", {
+  messageId: String(message._id),
+});
+
+    return res.status(200).json({
+      message: "Message deleted for everyone",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to delete message",
       error: error.message,
     });
   }

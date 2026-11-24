@@ -39,16 +39,16 @@ function Chat() {
         );
 
         const chatContacts = acceptedRequests.map((request) => {
-        const senderId = request.sender?._id || request.sender;
-        const receiverId = request.receiver?._id || request.receiver;
+          const senderId = request.sender?._id || request.sender;
+          const receiverId = request.receiver?._id || request.receiver;
 
-        const person =
-        String(senderId) === String(user.id)
-         ? request.receiver
-         : request.sender;
+          const person =
+            String(senderId) === String(user.id)
+              ? request.receiver
+              : request.sender;
 
-         return person;
-       });
+          return person;
+        });
         console.log("Accepted requests:", acceptedRequests);
         console.log("Chat contacts:", chatContacts);
 
@@ -71,8 +71,8 @@ function Chat() {
     };
 
     if (user?.id) {
-  fetchContacts();
-}
+      fetchContacts();
+    }
   }, [user]);
 
   // Load conversation when a contact is selected
@@ -113,33 +113,103 @@ function Chat() {
 
   // Receive messages in real time
   // Receive messages in real time
-useEffect(() => {
-  const handleNewMessage = (message) => {
-    if (
-      selectedUser &&
-      String(message.sender?._id) === String(selectedUser._id)
-    ) {
-      setMessages((previousMessages) => [
-        ...previousMessages,
-        message,
-      ]);
+  useEffect(() => {
+    const handleNewMessage = (message) => {
+      if (
+        selectedUser &&
+        String(message.sender?._id) === String(selectedUser._id)
+      ) {
+        setMessages((previousMessages) => [
+          ...previousMessages,
+          message,
+        ]);
 
-      api.put(
-        `/api/messages/${selectedUser._id}/read`,
-        {},
+        api.put(
+          `/api/messages/${selectedUser._id}/read`,
+          {},
+          { headers }
+        ).catch((error) => {
+          console.error("Failed to mark message as read:", error);
+        });
+      }
+    };
+      const handleMessageDeleted = ({ messageId }) => {
+    setMessages((previousMessages) =>
+      previousMessages.map((message) =>
+        message._id === messageId
+          ? {
+              ...message,
+              message: "This message was deleted",
+              isDeletedForEveryone: true,
+            }
+          : message
+      )
+    );
+  };
+
+    socket.on("newMessage", handleNewMessage);
+    socket.on("messageDeleted", handleMessageDeleted);
+    return () => {
+      socket.off("newMessage", handleNewMessage);
+      socket.off("messageDeleted", handleMessageDeleted);
+    };
+  }, [selectedUser]);
+
+  // Delete message for everyone
+const handleDeleteMessage = async (messageId) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this message for everyone?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    await api.delete(`/api/messages/${messageId}`, { headers });
+
+    setMessages((previousMessages) =>
+      previousMessages.map((message) =>
+        message._id === messageId
+          ? {
+              ...message,
+              message: "This message was deleted",
+              isDeletedForEveryone: true,
+            }
+          : message
+      )
+    );
+  } catch (error) {
+    setError(
+      error.response?.data?.message || "Failed to delete message."
+    );
+  }
+};
+
+  const handleClearChat = async () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to clear this conversation for yourself?"
+    );
+
+    if (!confirmed || !selectedUser) {
+      return;
+    }
+
+    try {
+      await api.delete(
+        `/api/messages/${selectedUser._id}/clear`,
         { headers }
-      ).catch((error) => {
-        console.error("Failed to mark message as read:", error);
-      });
+      );
+
+      setMessages([]);
+      setError("");
+    } catch (error) {
+      setError(
+        error.response?.data?.message || "Failed to clear chat."
+      );
     }
   };
 
-  socket.on("newMessage", handleNewMessage);
-
-  return () => {
-    socket.off("newMessage", handleNewMessage);
-  };
-}, [selectedUser]);
 
   // Send a message
   const handleSendMessage = async (e) => {
@@ -215,11 +285,10 @@ useEffect(() => {
                   setSelectedUser(person);
                   setError("");
                 }}
-                className={`w-full border-b border-[#DCE4EF] p-4 text-left transition hover:bg-[#F3F6FA] ${
-                  selectedUser?._id === person._id
+                className={`w-full border-b border-[#DCE4EF] p-4 text-left transition hover:bg-[#F3F6FA] ${selectedUser?._id === person._id
                     ? "bg-[#EAF1FB]"
                     : ""
-                }`}
+                  }`}
               >
                 <p className="font-medium text-[#142D4E]">
                   {person.name}
@@ -233,29 +302,42 @@ useEffect(() => {
         </div>
 
         {/* Chat area */}
-        <div className="flex flex-col md:col-span-2">
-          {selectedUser ? (
-            <>
-              <div className="border-b border-[#DCE4EF] p-4">
-                <h2 className="font-semibold text-[#142D4E]">
-                  {selectedUser.name}
-                </h2>
-                <p className="text-xs text-gray-500">
-                  {selectedUser.email}
-                </p>
-              </div>
+{/* Chat area */}
+<div className="flex flex-col md:col-span-2">
+  {selectedUser ? (
+    <>
+      {/* Chat header */}
+      <div className="flex items-center justify-between border-b border-[#DCE4EF] p-4">
+        <div>
+          <h2 className="font-semibold text-[#142D4E]">
+            {selectedUser.name}
+          </h2>
+          <p className="text-xs text-gray-500">
+            {selectedUser.email}
+          </p>
+        </div>
 
-              <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
-                {loadingMessages ? (
-                  <p className="text-sm text-gray-500">
-                    Loading messages...
-                  </p>
-                ) : messages.length === 0 ? (
-                  <p className="m-auto text-sm text-gray-500">
-                    No messages yet. Start the conversation!
-                  </p>
-                ) : (
-                  messages.map((message) => {
+        <button
+          type="button"
+          onClick={handleClearChat}
+          className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+        >
+          Clear Chat
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+        {loadingMessages ? (
+          <p className="text-sm text-gray-500">
+            Loading messages...
+          </p>
+        ) : messages.length === 0 ? (
+          <p className="m-auto text-sm text-gray-500">
+            No messages yet. Start the conversation!
+          </p>
+        ) : (
+          messages.map((message) => {
   const isMyMessage =
     String(message.sender?._id) === String(user.id);
 
@@ -266,48 +348,65 @@ useEffect(() => {
         isMyMessage ? "justify-end" : "justify-start"
       }`}
     >
-      <div
-        className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${
-          isMyMessage
-            ? "bg-[#4F86F7] text-white"
-            : "bg-[#F3F6FA] text-[#142D4E]"
-        }`}
-      >
-        {message.message}
+      <div className="flex flex-col gap-1">
+        <div
+          className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${
+            isMyMessage
+              ? "bg-[#4F86F7] text-white"
+              : "bg-[#F3F6FA] text-[#142D4E]"
+          } ${
+            message.isDeletedForEveryone
+              ? "italic opacity-70"
+              : ""
+          }`}
+        >
+          {message.message}
+        </div>
+
+        {isMyMessage && !message.isDeletedForEveryone && (
+          <button
+            type="button"
+            onClick={() => handleDeleteMessage(message._id)}
+            className="self-end text-xs text-red-500 hover:text-red-700"
+          >
+            Delete
+          </button>
+        )}
       </div>
     </div>
   );
 })
-                )}
-              </div>
+        )}
+      </div>
 
-              <form
-                onSubmit={handleSendMessage}
-                className="flex gap-2 border-t border-[#DCE4EF] p-4"
-              >
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type your message..."
-                  className="min-w-0 flex-1 rounded-lg border border-[#DCE4EF] px-3 py-2 text-sm outline-none focus:border-[#4F86F7]"
-                />
+      {/* Send message */}
+      <form
+        onSubmit={handleSendMessage}
+        className="flex gap-2 border-t border-[#DCE4EF] p-4"
+      >
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Type your message..."
+          className="min-w-0 flex-1 rounded-lg border border-[#DCE4EF] px-3 py-2 text-sm outline-none focus:border-[#4F86F7]"
+        />
 
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim()}
-                  className="rounded-lg bg-[#4F86F7] px-5 py-2 text-sm font-medium text-white hover:bg-[#3B72E8] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Send
-                </button>
-              </form>
-            </>
-          ) : (
-            <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-gray-500">
-              Select a contact to start chatting.
-            </div>
-          )}
-        </div>
+        <button
+          type="submit"
+          disabled={!newMessage.trim()}
+          className="rounded-lg bg-[#4F86F7] px-5 py-2 text-sm font-medium text-white hover:bg-[#3B72E8] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Send
+        </button>
+      </form>
+    </>
+  ) : (
+    <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-gray-500">
+      Select a contact to start chatting.
+    </div>
+  )}
+</div>
       </div>
     </div>
   );
