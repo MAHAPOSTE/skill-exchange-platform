@@ -15,6 +15,7 @@ import sessionRoutes from "./routes/sessionRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use("/api/sessions", sessionRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 httpServer.listen(port, () => {
   console.log(`Server running on port ${port}`);

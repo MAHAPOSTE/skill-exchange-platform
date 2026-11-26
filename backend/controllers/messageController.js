@@ -1,6 +1,7 @@
 
 import Message from "../models/messageModel.js";
 import SkillExchangeRequest from "../models/skillExchangeRequestModel.js";
+import Notification from "../models/notificationModel.js";
 
 // Check whether an accepted exchange exists
 const checkChatAccess = async (userId, receiverId) => {
@@ -56,7 +57,26 @@ export const sendMessage = async (req, res) => {
 
       // Send message to receiver through Socket.IO
      const io = req.app.get("io");
-     io.to(String(receiverId)).emit("newMessage", populatedMessage);
+
+if (io) {
+  io.to(String(receiverId)).emit("newMessage", populatedMessage);
+}
+
+try {
+  const notification = await Notification.create({
+    recipient: receiverId,
+    sender: senderId,
+    type: "message",
+    title: "New message",
+    message: `${populatedMessage.sender.name} sent you a message`,
+  });
+
+  if (io) {
+    io.to(String(receiverId)).emit("newNotification", notification);
+  }
+} catch (notificationError) {
+  console.error("Message notification failed:", notificationError.message);
+}
 
     return res.status(201).json({
       message: "Message sent successfully",
@@ -220,13 +240,15 @@ export const deleteMessageForEveryone = async (req, res) => {
 
     const io = req.app.get("io");
 
-io.to(String(message.sender)).emit("messageDeleted", {
-  messageId: String(message._id),
-});
+if (io) {
+  io.to(String(message.sender)).emit("messageDeleted", {
+    messageId: String(message._id),
+  });
 
-io.to(String(message.receiver)).emit("messageDeleted", {
-  messageId: String(message._id),
-});
+  io.to(String(message.receiver)).emit("messageDeleted", {
+    messageId: String(message._id),
+  });
+}
 
     return res.status(200).json({
       message: "Message deleted for everyone",
